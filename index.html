@@ -2,7 +2,7 @@
 <html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
 <title>Amin Ullah and Brothers – Currency ERP</title>
 <meta name="app-version" content="__APP_VERSION__"/>
 <meta name="app-native-code" content="__APP_NATIVE_CODE__"/>
@@ -296,6 +296,33 @@ html[dir="rtl"] .sw .fc{padding-left:11px;padding-right:30px;}
 html[dir="rtl"] .nav-item .ni{margin-left:9px;}
 html[dir="rtl"] .fbet{flex-direction:row-reverse;}
 html[dir="rtl"] .fbar{flex-direction:row-reverse;}
+
+/* MOBILE BOTTOM TABS */
+.bottom-nav{display:none}
+@media(max-width:760px){
+  .content{padding-bottom:calc(84px + env(safe-area-inset-bottom))}
+  .bottom-nav{
+    display:flex;position:fixed;left:0;right:0;bottom:0;z-index:350;
+    background:var(--card);border-top:1px solid var(--border);
+    height:calc(60px + env(safe-area-inset-bottom));
+    padding-bottom:env(safe-area-inset-bottom);
+    box-shadow:0 -4px 18px rgba(0,0,0,.25);
+  }
+  .bottom-tab{
+    flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+    border:none;background:none;color:var(--text2);font-family:var(--font);
+    font-size:10px;font-weight:600;padding:7px 2px 6px;position:relative;
+    transition:color var(--tr);-webkit-tap-highlight-color:transparent;cursor:pointer;
+  }
+  .bottom-tab .bt-ico{font-size:18px;line-height:1;transition:transform var(--tr)}
+  .bottom-tab.active{color:var(--accent)}
+  .bottom-tab.active .bt-ico{transform:translateY(-1px)}
+  .bottom-tab.active::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:28px;height:3px;background:var(--accent);border-radius:0 0 3px 3px}
+  .nav-sec[data-mobile-hide],.nav-item[data-mobile-tab]{display:none}
+  #toast-box{bottom:calc(76px + env(safe-area-inset-bottom));right:10px;left:10px}
+  .toast{min-width:0;width:100%}
+  #upd-bar{bottom:calc(70px + env(safe-area-inset-bottom))}
+}
 </style>
 </head>
 <body>
@@ -443,15 +470,15 @@ html[dir="rtl"] .fbar{flex-direction:row-reverse;}
       <div class="brand-sub" data-i18n="app_sub">Currency Exchange ERP</div>
     </div>
     <div class="nav">
-      <div class="nav-sec">
+      <div class="nav-sec" data-mobile-hide>
         <div class="nav-sec-lbl" data-i18n="main">Main</div>
-        <div class="nav-item active" data-page="dashboard"><span class="ni">📊</span><span data-i18n="dashboard">Dashboard</span></div>
-        <div class="nav-item" data-page="transactions"><span class="ni">💱</span><span data-i18n="transactions">Transactions</span></div>
-        <div class="nav-item" data-page="payments"><span class="ni">💳</span><span data-i18n="payments">Payments</span></div>
+        <div class="nav-item active" data-page="dashboard" data-mobile-tab="dashboard"><span class="ni">📊</span><span data-i18n="dashboard">Dashboard</span></div>
+        <div class="nav-item" data-page="transactions" data-mobile-tab="transactions"><span class="ni">💱</span><span data-i18n="transactions">Transactions</span></div>
+        <div class="nav-item" data-page="payments" data-mobile-tab="payments"><span class="ni">💳</span><span data-i18n="payments">Payments</span></div>
       </div>
-      <div class="nav-sec">
+      <div class="nav-sec" data-mobile-hide>
         <div class="nav-sec-lbl" data-i18n="parties">Parties</div>
-        <div class="nav-item" data-page="customers"><span class="ni">👥</span><span data-i18n="customers">Customers</span></div>
+        <div class="nav-item" data-page="customers" data-mobile-tab="customers"><span class="ni">👥</span><span data-i18n="customers">Customers</span></div>
       </div>
       <div class="nav-sec">
         <div class="nav-sec-lbl" data-i18n="finance">Finance</div>
@@ -483,6 +510,14 @@ html[dir="rtl"] .fbar{flex-direction:row-reverse;}
   </div>
 </div>
 
+<!-- MOBILE BOTTOM TABS -->
+<nav class="bottom-nav" aria-label="Primary">
+  <button class="bottom-tab active" data-page="dashboard" onclick="goToPage('dashboard')"><span class="bt-ico">📊</span><span data-i18n="dashboard">Dashboard</span></button>
+  <button class="bottom-tab" data-page="transactions" onclick="goToPage('transactions')"><span class="bt-ico">💱</span><span data-i18n="transactions">Transactions</span></button>
+  <button class="bottom-tab" data-page="payments" onclick="goToPage('payments')"><span class="bt-ico">💳</span><span data-i18n="payments">Payments</span></button>
+  <button class="bottom-tab" data-page="customers" onclick="goToPage('customers')"><span class="bt-ico">👥</span><span data-i18n="accounts">Accounts</span></button>
+</nav>
+
 <script>
 /* =====================================================
    TRANSLATION / I18N
@@ -492,7 +527,7 @@ const I18N = {
     app_title: "Amin Ullah & Brothers", app_sub: "Currency Exchange ERP",
     main: "Main", parties: "Parties", finance: "Finance", system: "System",
     dashboard: "Dashboard", transactions: "Transactions", payments: "Payments",
-    customers: "Customers", inventory: "Currency Inventory", pnl: "Profit & Loss",
+    customers: "Customers", accounts: "Accounts", inventory: "Currency Inventory", pnl: "Profit & Loss",
     logs: "Edit Logs", backup: "Backup & Restore", updates: "Updates",
     net_profit: "Net PKR Profit", pkr_bal: "PKR Balance",
     cust_open_bal: "Customers with Open Balance", total_txns: "Total Transactions",
@@ -511,7 +546,7 @@ const I18N = {
     app_title: "امین الله او وروڼه", app_sub: "د اسعارو تبادله",
     main: "عمومي", parties: "مراجعین", finance: "مالي", system: "سیسټم",
     dashboard: "ډشبورډ", transactions: "معاملات", payments: "تادیات",
-    customers: "پیرودونکي", inventory: "موجوده اسعار", pnl: "ګټه او زیان",
+    customers: "پیرودونکي", accounts: "حسابونه", inventory: "موجوده اسعار", pnl: "ګټه او زیان",
     logs: "بدلونونه", backup: "بیک اپ / کاپي", updates: "تازه معلومات",
     net_profit: "خالصه ګټه (کلدارې)", pkr_bal: "د کلدارو بیلانس",
     cust_open_bal: "پیرودونکي چې حساب لري", total_txns: "ټولې معاملې",
@@ -1051,13 +1086,24 @@ function navPush(page){
   if(navHistory.length>25)navHistory.shift();
 }
 
-document.querySelectorAll('.nav-item[data-page]').forEach(item=>{
-  item.addEventListener('click',()=>{
-    document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
-    item.classList.add('active');
-    S.custView='list'; // leaving the customer sub-view when navigating
-    navigate(item.dataset.page);
+function setActivePage(page){
+  document.querySelectorAll('.nav-item[data-page]').forEach(i=>{
+    i.classList.toggle('active',i.dataset.page===page);
   });
+  document.querySelectorAll('.bottom-tab[data-page]').forEach(b=>{
+    b.classList.toggle('active',b.dataset.page===page);
+  });
+}
+function goToPage(page){
+  if(!page)return;
+  S.custView='list';            // leaving any customer sub-view
+  if(page==='customers')S.ledgerCustId=null;
+  setActivePage(page);
+  navigate(page);
+  document.querySelector('.sidebar').classList.remove('open');
+}
+document.querySelectorAll('.nav-item[data-page]').forEach(item=>{
+  item.addEventListener('click',()=>goToPage(item.dataset.page));
 });
 
 function toggleMobileMenu(){
@@ -1070,6 +1116,7 @@ async function navigate(page,opts={}){
     else if(page!==S.page)navPush(S.page);
   }
   S.page=page;
+  setActivePage(page);
   document.getElementById('page-title').textContent=getTitles()[page]||page;
   document.getElementById('content').innerHTML='<div class="spinner"></div>';
   await loadAll();
