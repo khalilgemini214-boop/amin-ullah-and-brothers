@@ -1,0 +1,20 @@
+{
+  "name": "amin-ullah-brothers-erp",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Amin Ullah & Brothers - Currency Exchange ERP",
+  "scripts": {
+    "build:web": "node scripts/build-web.mjs",
+    "sync": "npm run build:web && cap sync android",
+    "open:android": "npm run sync && cap open android",
+    "apk:debug": "npm run sync && cd android && gradlew assembleDebug"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.6.0",
+    "@capacitor/app": "^8.1.2",
+    "@capacitor/core": "^8.6.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.6.0"
+  }
+}

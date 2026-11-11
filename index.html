@@ -1,0 +1,2891 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Amin Ullah and Brothers – Currency ERP</title>
+<meta name="app-version" content="__APP_VERSION__"/>
+<meta name="app-native-code" content="__APP_NATIVE_CODE__"/>
+<meta name="app-build" content="__APP_BUILD__"/>
+<!-- This file is the app document. scripts/build-web.mjs wraps it in a
+     tiny loader shell (www/index.html) that applies OTA updates. -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0d0f14;--bg2:#13161e;--bg3:#1a1e28;--card:#151820;
+  --border:#222736;--border2:#2c3248;
+  --text:#e2e6f0;--text2:#7c8699;--text3:#4a5266;
+  --accent:#f5a623;--accent2:#e8920f;
+  --green:#2ecc71;--red:#e74c3c;--blue:#3498db;--purple:#9b59b6;
+  --r:12px;--rs:7px;--sh:0 2px 16px rgba(0,0,0,.45);
+  --font:'Inter',system-ui,sans-serif;--tr:.15s ease;
+}
+[data-theme="light"]{
+  --bg:#f4f6fb;--bg2:#eaecf4;--bg3:#dde1ee;--card:#fff;
+  --border:#d5d9e8;--border2:#bcc3d8;--text:#1a1e2e;--text2:#4a5470;--text3:#8892a8;
+  --sh:0 2px 16px rgba(0,0,0,.08);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{font-size:14px}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;line-height:1.55;transition:background .3s,color .3s}
+button{cursor:pointer;font-family:var(--font)}
+input,select,textarea{font-family:var(--font)}
+table{border-collapse:collapse;width:100%}
+th{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;padding:9px 14px;border-bottom:1px solid var(--border)}
+td{padding:9px 14px;border-bottom:1px solid var(--border);font-size:13px}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:var(--bg3)}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:var(--bg2)}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px}
+
+/* LAYOUT */
+.app{display:flex;height:100vh;overflow:hidden}
+.sidebar{width:220px;min-width:220px;background:var(--card);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;z-index:100}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{height:54px;min-height:54px;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:12px}
+.content{flex:1;overflow-y:auto;padding:20px 22px}
+
+/* SIDEBAR */
+.brand{padding:16px 15px 13px;border-bottom:1px solid var(--border)}
+.brand-name{font-size:14px;font-weight:700;color:var(--accent);line-height:1.35}
+.brand-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.nav{padding:10px 8px;flex:1}
+.nav-sec{margin-bottom:16px}
+.nav-sec-lbl{font-size:10px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--text3);padding:0 8px;margin-bottom:4px}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:var(--rs);color:var(--text2);font-size:13px;font-weight:500;cursor:pointer;transition:all var(--tr);margin-bottom:1px;user-select:none}
+.nav-item:hover{background:var(--bg3);color:var(--text)}
+.nav-item.active{background:rgba(245,166,35,.1);color:var(--accent)}
+.nav-item .ni{font-size:15px;width:18px;text-align:center}
+.sidebar-footer{padding:11px 9px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:6px}
+.sb-btn{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:var(--rs);background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-size:12px;font-weight:500;transition:all var(--tr)}
+.sb-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+/* TOPBAR */
+.page-title{font-size:15px;font-weight:600;flex:1}
+.topbar-right{display:flex;align-items:center;gap:7px}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:var(--green);transition:background .3s}
+.sync-dot.syncing{background:var(--accent);animation:blink .8s infinite alternate}
+.sync-dot.offline{background:var(--red)}
+.sync-lbl{font-size:11px;color:var(--text2)}
+@keyframes blink{from{opacity:.3}to{opacity:1}}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:var(--rs);border:none;font-size:13px;font-weight:500;transition:all var(--tr);white-space:nowrap;cursor:pointer}
+.btn-primary{background:var(--accent);color:#000}
+.btn-primary:hover{background:var(--accent2)}
+.btn-ghost{background:var(--bg3);color:var(--text2);border:1px solid var(--border)}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+.btn-danger{background:rgba(231,76,60,.1);color:var(--red);border:1px solid rgba(231,76,60,.2)}
+.btn-danger:hover{background:var(--red);color:#fff;border-color:var(--red)}
+.btn-sm{padding:4px 9px;font-size:12px}
+
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:18px}
+.card-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px}
+.card-title{font-size:13px;font-weight:600}
+
+/* STAT CARDS */
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;transition:all var(--tr)}
+.stat-card:hover{border-color:var(--border2);transform:translateY(-1px);box-shadow:var(--sh)}
+.stat-icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;margin-bottom:11px}
+.si-gold{background:rgba(245,166,35,.12);color:var(--accent)}
+.si-green{background:rgba(46,204,113,.12);color:var(--green)}
+.si-red{background:rgba(231,76,60,.12);color:var(--red)}
+.si-blue{background:rgba(52,152,219,.12);color:var(--blue)}
+.stat-val{font-size:20px;font-weight:700;margin-bottom:3px;letter-spacing:-.3px;line-height:1.2}
+.stat-lbl{font-size:11px;color:var(--text2);font-weight:500}
+
+/* GRID */
+.grid{display:grid;gap:15px}
+.g4{grid-template-columns:repeat(4,1fr)}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g2{grid-template-columns:repeat(2,1fr)}
+.g5{grid-template-columns:repeat(5,1fr)}
+@media(max-width:1100px){.g4{grid-template-columns:repeat(2,1fr)}.g5{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:760px){
+  .g2,.g3,.g4,.g5{grid-template-columns:1fr}
+  .app{flex-direction:column}
+  .sidebar{width:100%;min-width:100%;height:auto;max-height:70vh;border-right:none;border-bottom:1px solid var(--border);position:fixed;top:0;left:0;right:0;transform:translateY(-100%);transition:transform .3s;z-index:200}
+  .sidebar.open{transform:translateY(0)}
+  .main{height:calc(100vh - 54px)}
+  .content{padding:12px 10px;padding-bottom:70px}
+  .mob-hide{display:none}
+  .topbar{padding:0 10px}
+  .page-title{font-size:13px}
+  .fr2,.fr3,.fr6,.fr5{grid-template-columns:1fr;gap:6px}
+  .fr6.txn-fields{grid-template-columns:1fr 1fr;gap:6px}
+  .entry-panel{padding:12px 10px}
+  .ep-title{font-size:9px}
+  .dir-btn{font-size:9px;padding:4px 5px}
+  .dir-toggle{font-size:9px}
+  .card{padding:12px 10px}
+  .stat-card{padding:12px}
+  .tbl-wrap{font-size:11px;overflow-x:auto}
+  th,td{padding:7px 8px;font-size:11px}
+  .modal{width:98vw;padding:14px}
+  .overlay{align-items:flex-end}
+  .overlay .modal{border-radius:var(--r) var(--r) 0 0;max-height:90vh}
+  .mobile-nav-btn{display:flex!important}
+  .badge{font-size:9px;padding:2px 5px}
+  .fl{font-size:9px}
+  .fc{font-size:12px;padding:6px 8px}
+  .btn{font-size:12px;padding:6px 10px}
+  .btn-sm{padding:3px 6px;font-size:10px}
+  .lb-amt{font-size:14px}
+  .cust-total-row{flex-wrap:wrap;gap:6px}
+  .cust-total-row .inv-left{width:100%}
+  .cust-total-row .inv-amt{font-size:12px}
+  .lb-card{min-width:100px;padding:8px 10px}
+  /* Customer table mobile */
+  .cust-table th:nth-child(2),.cust-table td:nth-child(2){display:none}
+  .cust-table .ledger-btn{display:none}
+  .cust-table tbody tr{cursor:pointer}
+  .cust-table tbody tr:hover{background:var(--bg3)}
+  .acts .btn-sm{padding:2px 5px;font-size:10px}
+}
+.mobile-nav-btn{display:none}
+
+/* FORM */
+.fr2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fr3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.fr5{display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:10px}
+.fr6{display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr 1fr;gap:10px}
+.fg{display:flex;flex-direction:column}
+.fl{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px;display:block}
+.fc{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:var(--rs);color:var(--text);padding:8px 11px;font-size:13px;outline:none;transition:border-color var(--tr)}
+.fc:focus{border-color:var(--accent)}
+.fc option{background:var(--bg2)}
+
+/* ENTRY PANEL */
+.entry-panel{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;margin-bottom:16px}
+.ep-title{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.07em;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.ep-title::before{content:'';display:inline-block;width:3px;height:13px;background:var(--accent);border-radius:2px}
+.inv-preview{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.inv-chip{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:var(--rs);font-size:12px;font-weight:500;background:rgba(46,204,113,.08);border:1px solid rgba(46,204,113,.2);color:var(--green)}
+.inv-chip.neg{background:rgba(231,76,60,.08);border-color:rgba(231,76,60,.2);color:var(--red)}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600}
+.b-green{background:rgba(46,204,113,.12);color:var(--green)}
+.b-red{background:rgba(231,76,60,.12);color:var(--red)}
+.b-blue{background:rgba(52,152,219,.12);color:var(--blue)}
+.b-gold{background:rgba(245,166,35,.12);color:var(--accent)}
+.b-gray{background:var(--bg3);color:var(--text2)}
+
+/* BALANCE DISPLAY */
+.bal-pills{display:flex;flex-direction:column;gap:3px;align-items:flex-start}
+
+/* LEDGER */
+.ledger-top{background:var(--bg3);border-radius:var(--rs);padding:14px 16px;margin-bottom:14px}
+.ledger-name{font-size:15px;font-weight:700;margin-bottom:10px}
+.ledger-bals{display:flex;gap:10px;flex-wrap:wrap}
+.lb-card{padding:10px 14px;border-radius:var(--rs);min-width:130px}
+.lb-card.you-owe{background:rgba(46,204,113,.08);border:1px solid rgba(46,204,113,.2)}
+.lb-card.they-owe{background:rgba(231,76,60,.08);border:1px solid rgba(231,76,60,.2)}
+.lb-card.zero{background:var(--bg3);border:1px solid var(--border)}
+.lb-curr-lbl{font-size:11px;font-weight:600;color:var(--text2);margin-bottom:4px}
+.lb-amt{font-size:17px;font-weight:700}
+.lb-who{font-size:10px;margin-top:2px;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+
+/* FILTER CHIPS */
+.chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:6px 13px;border-radius:99px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-size:12px;font-weight:600;transition:all var(--tr);cursor:pointer;white-space:nowrap}
+.chip:hover{border-color:var(--accent);color:var(--accent)}
+.chip.active{background:rgba(245,166,35,.12);border-color:var(--accent);color:var(--accent)}
+
+/* LEDGER RUNNING TABLE */
+.run-bal-pos{color:var(--green);font-weight:600}
+.run-bal-neg{color:var(--red);font-weight:600}
+.run-bal-zero{color:var(--text3)}
+
+/* LEDGER SUB-TABS / SECTION */
+.ledg-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.ledg-tab{display:inline-flex;align-items:center;gap:6px;padding:6px 13px;border-radius:99px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);font-size:12px;font-weight:600;transition:all var(--tr);cursor:pointer}
+.ledg-tab:hover{border-color:var(--accent);color:var(--accent)}
+.ledg-tab.active{background:rgba(245,166,35,.12);border-color:var(--accent);color:var(--accent)}
+.ledg-hd{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+
+/* DIRECTION TOGGLE */
+.dir-toggle{display:flex;border-radius:var(--rs);overflow:hidden;border:1px solid var(--border)}
+.dir-btn{flex:1;padding:6px 8px;border:none;font-size:11px;font-weight:600;cursor:pointer;transition:all var(--tr);background:var(--bg2);color:var(--text2)}
+.dir-btn.active-recv{background:rgba(46,204,113,.35);color:#27c46a;font-weight:700}
+.dir-btn.active-paid{background:rgba(231,76,60,.35);color:#d63434;font-weight:700}
+
+/* INV ROWS */
+.inv-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)}
+.inv-row:last-child{border-bottom:none}
+.inv-left{display:flex;align-items:center;gap:10px}
+.inv-flag{font-size:20px;line-height:1}
+.inv-name{font-size:13px;font-weight:600}
+.inv-desc{font-size:11px;color:var(--text3)}
+.inv-amt{font-size:14px;font-weight:700}
+
+/* MISC */
+.tbl-wrap{overflow-x:auto}
+.fbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.fbar .fc{width:auto;min-width:120px}
+.sw{position:relative}
+.sw .fc{padding-left:30px}
+.sw-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:13px;pointer-events:none}
+.fbet{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.acts{display:flex;gap:5px}
+.chart-wrap{position:relative;height:200px}
+.spinner{width:30px;height:30px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:40px auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:36px 20px;color:var(--text3)}
+.empty .ei{font-size:28px;margin-bottom:9px}
+.tc{color:var(--text2)}.fw7{font-weight:700}
+.fc-green{color:var(--green)}.fc-red{color:var(--red)}.fc-gold{color:var(--accent)}
+.cust-drop{position:absolute;top:100%;left:0;right:0;z-index:50;background:var(--card);border:1px solid var(--border2);border-radius:var(--rs);max-height:200px;overflow-y:auto;display:none;box-shadow:var(--sh)}
+.cust-drop-item{padding:8px 11px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--border);transition:background var(--tr)}
+.cust-drop-item:last-child{border-bottom:none}
+.cust-drop-item:hover{background:var(--bg3);color:var(--accent)}
+.mt3{margin-top:12px}.mt4{margin-top:16px}.mb3{margin-bottom:12px}.mb4{margin-bottom:16px}
+.sg{margin-bottom:18px}
+
+/* MODAL */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;z-index:1000;opacity:0;pointer-events:none;transition:opacity .2s}
+.overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--card);border:1px solid var(--border2);border-radius:var(--r);padding:22px;width:520px;max-width:96vw;max-height:92vh;overflow-y:auto;transform:translateY(14px) scale(.97);transition:transform .22s;box-shadow:0 8px 48px rgba(0,0,0,.6)}
+.modal-lg{width:780px}
+.overlay.open .modal{transform:none}
+.modal-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.modal-title{font-size:14px;font-weight:600}
+.mc{width:26px;height:26px;border-radius:6px;background:var(--bg3);border:none;color:var(--text2);font-size:13px;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.mc:hover{color:var(--red)}
+.modal-ft{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;padding-top:13px;border-top:1px solid var(--border)}
+
+/* TOAST */
+#toast-box{position:fixed;bottom:18px;right:18px;z-index:9999;display:flex;flex-direction:column;gap:6px}
+.toast{background:var(--card);border:1px solid var(--border2);border-radius:var(--rs);padding:9px 15px;font-size:13px;font-weight:500;box-shadow:var(--sh);animation:ti .25s ease;display:flex;align-items:center;gap:8px;min-width:230px}
+.toast.success{border-left:3px solid var(--green)}.toast.error{border-left:3px solid var(--red)}.toast.info{border-left:3px solid var(--blue)}
+@keyframes ti{from{transform:translateX(70%);opacity:0}to{transform:translateX(0);opacity:1}}
+
+/* UPDATE BANNER */
+#upd-bar{position:fixed;left:50%;bottom:18px;transform:translateX(-50%) translateY(160%);z-index:4000;width:min(560px,94vw);background:var(--card);border:1px solid var(--border2);border-left:3px solid var(--accent);border-radius:var(--r);padding:12px 15px;box-shadow:0 8px 40px rgba(0,0,0,.6);display:flex;align-items:center;gap:12px;transition:transform .28s ease}
+#upd-bar.show{transform:translateX(-50%) translateY(0)}
+#upd-bar .ub-ico{font-size:20px;flex-shrink:0}
+#upd-bar .ub-txt{flex:1;min-width:0}
+#upd-bar .ub-title{font-size:13px;font-weight:600;line-height:1.35}
+#upd-bar .ub-sub{font-size:11px;color:var(--text2);margin-top:2px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#upd-bar .ub-acts{display:flex;gap:6px;flex-shrink:0}
+#upd-bar .ub-close{background:none;border:none;color:var(--text3);font-size:15px;padding:2px 4px;align-self:flex-start}
+.upd-prog{height:4px;background:var(--bg3);border-radius:99px;overflow:hidden;margin-top:7px}
+.upd-prog>div{height:100%;width:0;background:var(--accent);border-radius:99px;transition:width .2s}
+.vpill{display:inline-flex;align-items:center;gap:5px;background:var(--bg3);border:1px solid var(--border);border-radius:99px;padding:3px 10px;font-size:11px;color:var(--text2);font-weight:500}
+@media(max-width:760px){#upd-bar{bottom:76px;padding:11px 12px}#upd-bar .ub-sub{white-space:normal}}
+
+/* CONFIRM */
+#conf-ov{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;z-index:2000;opacity:0;pointer-events:none;transition:opacity .2s}
+#conf-ov.open{opacity:1;pointer-events:all}
+.conf-box{background:var(--card);border:1px solid var(--border2);border-radius:var(--r);padding:24px;width:350px;text-align:center}
+.conf-box h3{font-size:15px;font-weight:600;margin-bottom:6px}
+.conf-box p{color:var(--text2);font-size:13px;margin-bottom:16px}
+.conf-acts{display:flex;gap:8px;justify-content:center}
+
+/* RTL ADJUSTMENTS */
+html[dir="rtl"]{text-align:right;}
+html[dir="rtl"] .sidebar{border-right:none;border-left:1px solid var(--border);}
+html[dir="rtl"] .sw-icon{left:auto;right:10px;}
+html[dir="rtl"] .sw .fc{padding-left:11px;padding-right:30px;}
+html[dir="rtl"] .nav-item .ni{margin-left:9px;}
+html[dir="rtl"] .fbet{flex-direction:row-reverse;}
+html[dir="rtl"] .fbar{flex-direction:row-reverse;}
+</style>
+</head>
+<body>
+<div id="toast-box"></div>
+
+<!-- UPDATE BANNER (shown when an update is ready) -->
+<div id="upd-bar">
+  <span class="ub-ico">⬆️</span>
+  <div class="ub-txt">
+    <div class="ub-title" id="ub-title">Update available</div>
+    <div class="ub-sub" id="ub-sub"></div>
+    <div class="upd-prog" id="ub-prog-wrap" style="display:none"><div id="ub-prog"></div></div>
+  </div>
+  <div class="ub-acts">
+    <button class="btn btn-primary btn-sm" id="ub-action">Update</button>
+    <button class="ub-close" onclick="Updater.hideBanner()" title="Later">✕</button>
+  </div>
+</div>
+
+<!-- CONFIRM -->
+<div id="conf-ov">
+  <div class="conf-box">
+    <div style="font-size:28px;margin-bottom:10px">⚠️</div>
+    <h3 id="c-title">Confirm</h3><p id="c-msg">Are you sure?</p>
+    <div class="conf-acts">
+      <button class="btn btn-ghost" id="c-cancel">Cancel</button>
+      <button class="btn btn-danger" id="c-ok">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- CUSTOMER MODAL -->
+<div class="overlay" id="mod-cust">
+  <div class="modal">
+    <div class="modal-hd"><div class="modal-title" id="cust-mod-title">New Customer</div><button class="mc" onclick="closeModal('mod-cust')">✕</button></div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">Name</label><input class="fc" id="c-name" placeholder="Customer name"/></div>
+      <div class="fg"><label class="fl">Phone</label><input class="fc" id="c-phone" placeholder="Phone number"/></div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-ghost" onclick="closeModal('mod-cust')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveCustomer()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- CLOSE MONTH MODAL (monthly P&L) -->
+<div class="overlay" id="mod-close-month">
+  <div class="modal">
+    <div class="modal-hd">
+      <div class="modal-title" id="close-month-title">Close Month</div>
+      <button class="mc" onclick="closeModal('mod-close-month')">✕</button>
+    </div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:14px">Enter the fixed PKR rate for each currency for this month. These rates are saved with the month's snapshot.</p>
+    <div id="close-month-body"></div>
+    <div class="fg mt3"><label class="fl">Previous month balance (PKR)</label><input type="number" class="fc" id="snap-prev" step="any" value="0"/></div>
+    <div class="modal-ft">
+      <button class="btn btn-ghost" onclick="closeModal('mod-close-month')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveMonthSnapshot()">💾 Close Month</button>
+    </div>
+  </div>
+</div>
+
+<!-- MONTH REPORT MODAL (read-only) -->
+<div class="overlay" id="mod-month-report">
+  <div class="modal modal-lg">
+    <div class="modal-hd">
+      <div class="modal-title" id="month-report-title">Month Report</div>
+      <button class="mc" onclick="closeModal('mod-month-report')">✕</button>
+    </div>
+    <div id="month-report-body"></div>
+  </div>
+</div>
+
+<!-- TXN EDIT MODAL -->
+<div class="overlay" id="mod-txn-edit">
+  <div class="modal modal-lg">
+    <div class="modal-hd"><div class="modal-title">Edit Transaction</div><button class="mc" onclick="closeModal('mod-txn-edit')">✕</button></div>
+    <div class="fg mb4">
+      <label class="fl">${t('direction')||'Direction'}</label>
+      <div class="dir-toggle">
+        <button class="dir-btn" id="et-dir-buy" onclick="setEtDir('buy')">⬇️ Buy</button>
+        <button class="dir-btn" id="et-dir-sell" onclick="setEtDir('sell')">⬆️ Sell</button>
+      </div>
+    </div>
+    <div class="fr3">
+      <div class="fg"><label class="fl" id="et-lbl-bought">Currency Bought</label><select class="fc" id="et-bought" onchange="eCalcFwd()"></select></div>
+      <div class="fg"><label class="fl">Against Currency</label><select class="fc" id="et-against" onchange="eCalcFwd()"></select></div>
+      <div class="fg"><label class="fl">Rate</label><input type="number" class="fc" id="et-rate" step="any" oninput="eCalcFwd()"/></div>
+    </div>
+    <div class="fr3 mt3">
+      <div class="fg"><label class="fl" id="et-lbl-ba">Bought Amount</label><input type="number" class="fc" id="et-ba" step="any" oninput="eCalcFwd()"/></div>
+      <div class="fg"><label class="fl" id="et-lbl-aa">Against Amount</label><input type="number" class="fc" id="et-aa" step="any" oninput="eCalcRev()"/></div>
+      <div class="fg"><label class="fl">Customer (optional)</label><div style="position:relative"><input class="fc" id="et-cust-input" placeholder="Type customer name..." autocomplete="off" oninput="filterCustAuto('et-cust-input','et-cust-drop','et-cust')" onfocus="filterCustAuto('et-cust-input','et-cust-drop','et-cust')"/><input type="hidden" id="et-cust" value=""/><div class="cust-drop" id="et-cust-drop"></div></div></div>
+    </div>
+    <div class="fr2 mt3">
+      <div class="fg"><label class="fl">Date</label><input type="date" class="fc" id="et-date"/></div>
+      <div class="fg"><label class="fl">Notes</label><input class="fc" id="et-notes" placeholder="Optional"/></div>
+    </div>
+    <div class="modal-ft">
+      <button class="btn btn-ghost" onclick="closeModal('mod-txn-edit')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEditTxn()">Update Transaction</button>
+    </div>
+  </div>
+</div>
+
+<!-- PAYMENT EDIT MODAL -->
+<div class="overlay" id="mod-pay-edit">
+  <div class="modal">
+    <div class="modal-hd"><div class="modal-title">Edit Payment</div><button class="mc" onclick="closeModal('mod-pay-edit')">✕</button></div>
+    <div class="fg mb4">
+      <label class="fl">Direction</label>
+      <div class="dir-toggle">
+        <button class="dir-btn" id="ep-dir-recv" onclick="setEpDir('received')">✅ Received</button>
+        <button class="dir-btn" id="ep-dir-paid" onclick="setEpDir('paid')">💸 Paid Out</button>
+      </div>
+    </div>
+    <div class="fr2">
+      <div class="fg"><label class="fl">Customer</label><div style="position:relative"><input class="fc" id="ep-cust-input" placeholder="Type customer name..." autocomplete="off" oninput="filterCustAuto('ep-cust-input','ep-cust-drop','ep-cust')" onfocus="filterCustAuto('ep-cust-input','ep-cust-drop','ep-cust')"/><input type="hidden" id="ep-cust" value=""/><div class="cust-drop" id="ep-cust-drop"></div></div></div>
+      <div class="fg"><label class="fl">Currency</label><select class="fc" id="ep-curr"></select></div>
+    </div>
+    <div class="fr2 mt3">
+      <div class="fg"><label class="fl">Amount</label><input type="number" class="fc" id="ep-amt" step="any"/></div>
+      <div class="fg"><label class="fl">Method</label>
+        <select class="fc" id="ep-method"><option>Cash</option><option>Bank</option><option>EasyPaisa</option><option>JazzCash</option><option>Other</option></select>
+      </div>
+    </div>
+    <div class="fr2 mt3">
+      <div class="fg"><label class="fl">Date</label><input type="date" class="fc" id="ep-date"/></div>
+      <div class="fg"><label class="fl">Party (opt)</label><div style="position:relative"><input class="fc" id="ep-party-input" placeholder="Type customer name..." autocomplete="off" oninput="filterCustAuto('ep-party-input','ep-party-drop','ep-party')" onfocus="filterCustAuto('ep-party-input','ep-party-drop','ep-party')"/><input type="hidden" id="ep-party" value=""/><div class="cust-drop" id="ep-party-drop"></div></div></div>
+    </div>
+    <div class="fg mt3"><label class="fl">Notes</label><input class="fc" id="ep-notes"/></div>
+    <div class="modal-ft">
+      <button class="btn btn-ghost" onclick="closeModal('mod-pay-edit')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEditPayment()">Update</button>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="app">
+  <nav class="sidebar">
+    <div class="brand">
+      <div class="brand-name" data-i18n="app_title">Amin Ullah &amp; Brothers</div>
+      <div class="brand-sub" data-i18n="app_sub">Currency Exchange ERP</div>
+    </div>
+    <div class="nav">
+      <div class="nav-sec">
+        <div class="nav-sec-lbl" data-i18n="main">Main</div>
+        <div class="nav-item active" data-page="dashboard"><span class="ni">📊</span><span data-i18n="dashboard">Dashboard</span></div>
+        <div class="nav-item" data-page="transactions"><span class="ni">💱</span><span data-i18n="transactions">Transactions</span></div>
+        <div class="nav-item" data-page="payments"><span class="ni">💳</span><span data-i18n="payments">Payments</span></div>
+      </div>
+      <div class="nav-sec">
+        <div class="nav-sec-lbl" data-i18n="parties">Parties</div>
+        <div class="nav-item" data-page="customers"><span class="ni">👥</span><span data-i18n="customers">Customers</span></div>
+      </div>
+      <div class="nav-sec">
+        <div class="nav-sec-lbl" data-i18n="finance">Finance</div>
+        <div class="nav-item" data-page="inventory"><span class="ni">💰</span><span data-i18n="inventory">Inventory</span></div>
+        <div class="nav-item" data-page="pnl"><span class="ni">📈</span><span data-i18n="pnl">Profit &amp; Loss</span></div>
+      </div>
+      <div class="nav-sec">
+        <div class="nav-sec-lbl" data-i18n="system">System</div>
+        <div class="nav-item" data-page="logs"><span class="ni">📋</span><span data-i18n="logs">Edit Logs</span></div>
+        <div class="nav-item" data-page="backup"><span class="ni">🗄️</span><span data-i18n="backup">Backup</span></div>
+        <div class="nav-item" data-page="updates"><span class="ni">⬆️</span><span data-i18n="updates">Updates</span></div>
+      </div>
+    </div>
+    <div class="sidebar-footer">
+      <button class="sb-btn" onclick="toggleTheme()">🌙 <span id="theme-lbl">Light Mode</span></button>
+      <button class="sb-btn" onclick="toggleLang()">🌐 <span id="lang-lbl">پښتو</span></button>
+    </div>
+  </nav>
+  <div class="main">
+    <div class="topbar">
+      <button class="mobile-nav-btn" onclick="toggleMobileMenu()" style="background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:6px 10px;font-size:16px;line-height:1">☰</button>
+      <div class="page-title" id="page-title">Dashboard</div>
+      <div class="topbar-right">
+        <span class="sync-dot" id="sync-dot"></span>
+        <span class="sync-lbl" id="sync-lbl">Online</span>
+      </div>
+    </div>
+    <div class="content" id="content"><div class="spinner"></div></div>
+  </div>
+</div>
+
+<script>
+/* =====================================================
+   TRANSLATION / I18N
+   ===================================================== */
+const I18N = {
+  en: {
+    app_title: "Amin Ullah & Brothers", app_sub: "Currency Exchange ERP",
+    main: "Main", parties: "Parties", finance: "Finance", system: "System",
+    dashboard: "Dashboard", transactions: "Transactions", payments: "Payments",
+    customers: "Customers", inventory: "Currency Inventory", pnl: "Profit & Loss",
+    logs: "Edit Logs", backup: "Backup & Restore", updates: "Updates",
+    net_profit: "Net PKR Profit", pkr_bal: "PKR Balance",
+    cust_open_bal: "Customers with Open Balance", total_txns: "Total Transactions",
+    all_txns: "All Transactions", new_txn: "New Transaction",
+    all_pays: "All Payments", new_pay: "New Payment",
+    new_cust: "New Customer", bal_chart: "Balance Chart",
+    flow_breakdown: "Flow Breakdown", vol_by_pair: "Volume by Pair",
+    run_bal: "Running Balance", export_backup: "Export Backup",
+    dl_json: "Download JSON", import_backup: "Import Backup", import_merge: "Import & Merge",
+    recent_txns: "Recent Transactions", cust_bals: "Customer Balances",
+    dir_buy: "Buy Currency", dir_sell: "Sell Currency",
+    curr_bought: "Currency Bought", curr_sold: "Currency Sold",
+    bought_amt: "Bought Amount", sold_amt: "Sold Amount", direction: "Direction"
+  },
+  ps: {
+    app_title: "امین الله او وروڼه", app_sub: "د اسعارو تبادله",
+    main: "عمومي", parties: "مراجعین", finance: "مالي", system: "سیسټم",
+    dashboard: "ډشبورډ", transactions: "معاملات", payments: "تادیات",
+    customers: "پیرودونکي", inventory: "موجوده اسعار", pnl: "ګټه او زیان",
+    logs: "بدلونونه", backup: "بیک اپ / کاپي", updates: "تازه معلومات",
+    net_profit: "خالصه ګټه (کلدارې)", pkr_bal: "د کلدارو بیلانس",
+    cust_open_bal: "پیرودونکي چې حساب لري", total_txns: "ټولې معاملې",
+    all_txns: "ټولې معاملې", new_txn: "نوې معامله",
+    all_pays: "ټول تادیات", new_pay: "نوې تادیه",
+    new_cust: "نوی پیرودونکی", bal_chart: "د بیلانس چارټ",
+    flow_breakdown: "د جریان تحلیل", vol_by_pair: "د جوړې له مخې حجم",
+    run_bal: "روان بیلانس", export_backup: "بیک اپ صادر کړئ",
+    dl_json: "ډیټا ډاونلوډ کړئ", import_backup: "بیک اپ وارد کړئ", import_merge: "وارد او ګډ کړئ",
+    recent_txns: "وروستۍ معاملې", cust_bals: "د پیرودونکو بیلانس",
+    dir_buy: "کرنسي رانيول", dir_sell: "کرنسي خرڅول",
+    curr_bought: "اخیستل شوې کرنسي", curr_sold: "پلورل شوې کرنسي",
+    bought_amt: "اخیستل شوې اندازه", sold_amt: "پلورل شوې اندازه", direction: "لوری / سمت"
+  }
+};
+function t(k){ const l=document.documentElement.dataset.lang||'en'; return I18N[l][k] || I18N['en'][k] || k; }
+function tU(){ document.querySelectorAll('[data-i18n]').forEach(el=>el.textContent=t(el.dataset.i18n)); }
+
+/* =====================================================
+   FIREBASE CONFIG
+   ===================================================== */
+const firebaseConfig = {
+  apiKey: "AIzaSyCkLYtdZ_7EKCciSSCJrTKH-SG2O0j3Nfg",
+  authDomain: "aminullahbro-7bc0c.firebaseapp.com",
+  projectId: "aminullahbro-7bc0c",
+  storageBucket: "aminullahbro-7bc0c.firebasestorage.app",
+  messagingSenderId: "644099521616",
+  appId: "1:644099521616:web:53a7ffe33608dcd6f56555"
+};
+
+/* =====================================================
+   OFFLINE-FIRST DB
+   ===================================================== */
+let db=null, fbReady=false, isOnline=navigator.onLine;
+const COLS=['customers','transactions','payments','logs','snapshots'];
+const PK='erp_q';
+
+const LS={
+  get(c){try{return JSON.parse(localStorage.getItem('erp_'+c)||'[]');}catch{return[];}},
+  set(c,d){try{localStorage.setItem('erp_'+c,JSON.stringify(d));}catch(e){toast('Storage full – data may not save','error');}},
+  id(){return 'l'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+};
+const PQ={
+  get(){try{return JSON.parse(localStorage.getItem(PK)||'[]');}catch{return[];}},
+  add(op){const q=PQ.get();q.push(op);try{localStorage.setItem(PK,JSON.stringify(q));}catch(e){toast('Storage full – pending ops may be lost','error');}},
+  set(q){try{localStorage.setItem(PK,JSON.stringify(q));}catch(e){toast('Storage full – pending ops may be lost','error');}}
+};
+function esc(s){if(s==null)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+function setSyncUI(s){
+  const dot=document.getElementById('sync-dot'),lbl=document.getElementById('sync-lbl');
+  if(!dot)return;
+  dot.className='sync-dot'+(s==='syncing'?' syncing':s==='offline'?' offline':'');
+  lbl.textContent=s==='syncing'?'Syncing…':s==='offline'?'Offline':s==='local'?'Local Only':'Synced';
+}
+
+const DB={
+  async getAll(col){return LS.get(col);},
+  async add(col,data){
+    const id=data.id||LS.id();
+    const createdAt=data.createdAt||Date.now();
+    const doc={id,createdAt,...data};
+    const arr=LS.get(col);arr.unshift(doc);LS.set(col,arr);
+    PQ.add({op:'set',col,id,data:doc});schedSync();
+    return id;
+  },
+  async update(col,id,data){
+    const arr=LS.get(col),i=arr.findIndex(x=>x.id===id);
+    if(i>=0){arr[i]={...arr[i],...data,updatedAt:Date.now()};LS.set(col,arr);}
+    PQ.add({op:'update',col,id,data:{...data,updatedAt:Date.now()}});schedSync();
+  },
+  async delete(col,id){
+    LS.set(col,LS.get(col).filter(x=>x.id!==id));
+    PQ.add({op:'delete',col,id});schedSync();
+  }
+};
+
+let syncT=null,syncRunning=false;
+function schedSync(){clearTimeout(syncT);syncT=setTimeout(runSync,2000);}
+async function runSync(){
+  if(syncRunning||!fbReady||!isOnline)return;
+  syncRunning=true;
+  const q=PQ.get();if(!q.length){syncRunning=false;setSyncUI('online');return;}
+  const qLen=q.length;
+  setSyncUI('syncing');
+  const fail=[];
+  for(const op of q){
+    try{
+      if(op.op==='set')await db.collection(op.col).doc(op.id).set(op.data);
+      else if(op.op==='update')await db.collection(op.col).doc(op.id).update(op.data);
+      else if(op.op==='delete')await db.collection(op.col).doc(op.id).delete();
+    }catch(e){fail.push(op);}
+  }
+  syncRunning=false;
+  const all=PQ.get();
+  const added=all.slice(qLen);
+  PQ.set([...fail,...added]);
+  const pending=PQ.get();
+  if(pending.length){
+    schedSync();
+  }else{
+    setSyncUI('online');
+  }
+}
+function hasLocalData(){
+  return COLS.some(c=>LS.get(c).length>0);
+}
+async function pullFirestore(overwrite=false){
+  if(!fbReady||!isOnline)return;
+  setSyncUI('syncing');
+  try{
+    // Fetch all collections first (atomic — only apply if ALL succeed)
+    const fetched={};
+    for(const col of COLS){
+      const snap=await db.collection(col).get();
+      fetched[col]=snap.docs.map(d=>({id:d.id,...d.data()}));
+    }
+    // All fetches succeeded — now apply to localStorage
+    for(const col of COLS){
+      const remote=fetched[col];
+      if(overwrite){
+        LS.set(col,remote);
+      }else{
+        const local=LS.get(col),ids=new Set(local.map(x=>x.id));
+        const merged=[...local,...remote.filter(r=>!ids.has(r.id))];
+        merged.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+        LS.set(col,merged);
+      }
+    }
+    setSyncUI('online');
+  }catch(e){setSyncUI('offline');}
+}
+function initFirebase(){
+  try{
+    if(!firebaseConfig.apiKey||!firebaseConfig.projectId){setSyncUI('local');return;}
+    firebase.initializeApp(firebaseConfig);
+    db=firebase.firestore();
+    fbReady=true;
+    toast('Firebase connected ✓','success');
+  }catch(e){setSyncUI('local');}
+}
+async function syncFromCloud(){
+  if(!fbReady||!isOnline){toast('Cannot sync – check connection','error');return;}
+  const ok=await confirm2('Sync from Cloud','This will overwrite ALL local data with Firestore data. Pending changes will be lost. Continue?');
+  if(!ok)return;
+  toast('Syncing from cloud…','info');
+  COLS.forEach(c=>LS.set(c,[]));
+  PQ.set([]);
+  await pullFirestore(true);
+  await loadAll();
+  toast('Synced from cloud ✓','success');
+  navigate(S.page);
+}
+window.addEventListener('online',()=>{isOnline=true;runSync();toast('Back online – syncing','info');});
+window.addEventListener('offline',()=>{isOnline=false;setSyncUI('offline');toast('Offline – saved locally','info');});
+
+/* =====================================================
+   CURRENCY CONFIG — text-based flags (no emoji needed)
+   ===================================================== */
+const CURR=[
+  {code:'PKR',name:'Pakistani Rupee', sym:'PKR', color:'#2ecc71'},
+  {code:'AED',name:'UAE Dirham',       sym:'AED', color:'#3498db'},
+  {code:'CNY',name:'Chinese Yuan',     sym:'CNY', color:'#e74c3c'},
+  {code:'USD',name:'US Dollar',        sym:'USD', color:'#f5a623'},
+  {code:'AFN',name:'Afghan Afghani',   sym:'AFN', color:'#9b59b6'},
+];
+
+// SVG flag icons — reliable cross-platform
+const FLAGS={
+  PKR:`<svg width="22" height="15" viewBox="0 0 22 15" style="border-radius:2px;vertical-align:middle"><rect width="22" height="15" fill="#01411C"/><rect width="4" height="15" fill="#fff"/><circle cx="13" cy="7.5" r="4" fill="#01411C"/><circle cx="14.2" cy="7.5" r="3.1" fill="#fff"/><polygon points="16.5,4.8 17.2,7 19.5,7 17.7,8.4 18.4,10.6 16.5,9.2 14.6,10.6 15.3,8.4 13.5,7 15.8,7" fill="#fff" transform="scale(0.55) translate(13,4)"/></svg>`,
+  AED:`<svg width="22" height="15" viewBox="0 0 22 15" style="border-radius:2px;vertical-align:middle"><rect width="22" height="15" fill="#fff"/><rect width="22" height="5" fill="#00732F"/><rect width="22" height="5" y="10" fill="#000"/><rect width="6" height="15" fill="#FF0000"/></svg>`,
+  CNY:`<svg width="22" height="15" viewBox="0 0 22 15" style="border-radius:2px;vertical-align:middle"><rect width="22" height="15" fill="#DE2910"/><polygon points="4,2 5,4.5 2.5,3 5.5,3 3,4.5" fill="#FFDE00"/><polygon points="8,1 8.6,2.8 7,1.8 9,1.8 7.4,2.8" fill="#FFDE00" transform="rotate(25,8,1)"/><polygon points="9.5,2.5 10.1,4.3 8.5,3.3 10.5,3.3 8.9,4.3" fill="#FFDE00" transform="rotate(10,9.5,2.5)"/><polygon points="9.5,4.5 10.1,6.3 8.5,5.3 10.5,5.3 8.9,6.3" fill="#FFDE00" transform="rotate(-10,9.5,4.5)"/><polygon points="8,6 8.6,7.8 7,6.8 9,6.8 7.4,7.8" fill="#FFDE00" transform="rotate(-25,8,6)"/></svg>`,
+  USD:`<svg width="22" height="15" viewBox="0 0 22 15" style="border-radius:2px;vertical-align:middle"><rect width="22" height="15" fill="#B22234"/><rect width="22" height="1.15" y="1.15" fill="#fff"/><rect width="22" height="1.15" y="3.46" fill="#fff"/><rect width="22" height="1.15" y="5.77" fill="#fff"/><rect width="22" height="1.15" y="8.08" fill="#fff"/><rect width="22" height="1.15" y="10.38" fill="#fff"/><rect width="22" height="1.15" y="12.69" fill="#fff"/><rect width="9" height="8" fill="#3C3B6E"/></svg>`,
+  AFN:`<svg width="22" height="15" viewBox="0 0 22 15" style="border-radius:2px;vertical-align:middle"><rect width="7.3" height="15" fill="#000"/><rect width="7.3" height="15" x="7.3" fill="#D32011"/><rect width="7.4" height="15" x="14.6" fill="#009A44"/></svg>`,
+};
+
+function flag(code){return FLAGS[code]||`<span style="font-size:18px;vertical-align:middle">${{PKR:'🇵🇰',AED:'🇦🇪',CNY:'🇨🇳',USD:'🇺🇸',AFN:'🇦🇫'}[code]||'💱'}</span>`;}
+const cf=c=>CURR.find(x=>x.code===c)||{code:c,name:c,sym:c,color:'#888'};
+
+// Currency option list
+const cOpts=(sel='')=>CURR.map(c=>`<option value="${c.code}"${c.code===sel?' selected':''}>${c.code} – ${c.name}</option>`).join('');
+
+/* Autocomplete customer input */
+function custAutoHTML(inputId, hiddenId, dropId, selectedId){
+  const sel=S.customers.find(c=>c.id===selectedId);
+  return`<div style="position:relative">
+    <input class="fc" id="${inputId}" placeholder="Type customer name..." autocomplete="off" value="${sel?esc(sel.name):''}" oninput="filterCustAuto('${inputId}','${dropId}','${hiddenId}')" onfocus="filterCustAuto('${inputId}','${dropId}','${hiddenId}')"/>
+    <input type="hidden" id="${hiddenId}" value="${selectedId||''}"/>
+    <div class="cust-drop" id="${dropId}"></div>
+  </div>`;
+}
+function filterCustAuto(inputId, dropId, hiddenId){
+  const input=document.getElementById(inputId);if(!input)return;
+  const drop=document.getElementById(dropId);if(!drop)return;
+  const q=input.value.toLowerCase();
+  const matches=q?S.customers.filter(c=>c.name.toLowerCase().startsWith(q)):S.customers;
+  if(matches.length){
+    drop.innerHTML=matches.map(c=>`<div class="cust-drop-item" onclick="selectCustAuto('${inputId}','${dropId}','${hiddenId}','${c.id}','${esc(c.name)}')">${esc(c.name)}</div>`).join('');
+    drop.style.display='block';
+  }else{drop.style.display='none';}
+}
+function selectCustAuto(inputId, dropId, hiddenId, id, name){
+  document.getElementById(inputId).value=name;
+  document.getElementById(hiddenId).value=id;
+  document.getElementById(dropId).style.display='none';
+}
+function closeAllCustDrop(){
+  document.querySelectorAll('.cust-drop').forEach(d=>d.style.display='none');
+}
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.cust-drop')&&!e.target.closest('[id$="-input"]'))closeAllCustDrop();
+});
+
+/* =====================================================
+   STATE
+   ===================================================== */
+let S={customers:[],transactions:[],payments:[],logs:[],snapshots:[],page:'dashboard',editId:null,ledgerCustId:null,ledgerCurrency:null,custView:'list',pnlRange:{type:'all',from:'',to:''},closeMonth:null};
+async function loadAll(){
+  const data=await Promise.all(COLS.map(c=>DB.getAll(c)));
+  COLS.forEach((c,i)=>{S[c]=data[i];});
+}
+
+/* =====================================================
+   INVENTORY  (boughtCurrency += boughtAmt, againstCurrency -= againstAmt)
+   ===================================================== */
+function calcInv(txns){
+  const inv=Object.fromEntries(CURR.map(c=>[c.code,0]));
+  txns.forEach(t=>{
+    inv[t.boughtCurrency]=(inv[t.boughtCurrency]||0)+(parseFloat(t.boughtAmt)||0);
+    inv[t.againstCurrency]=(inv[t.againstCurrency]||0)-(parseFloat(t.againstAmt)||0);
+  });
+  return inv;
+}
+
+/* =====================================================
+   MONTHLY P&L  (credit / debit balance method)
+   ─────────────────────────────────────────────────────
+   At each month-end, sum every customer's balance (per
+   currency), convert to PKR with the fixed rates entered
+   when the month is closed, and split by sign:
+
+     totalDebit  = Σ positive balances  (customers owe you)
+     totalCredit = Σ negative balances  (you owe customers)
+     balance     = totalDebit − totalCredit     (positive = good)
+     PnL(month)  = balance(this month) − balance(previous month)
+
+   Closed months are stored as immutable snapshots so past
+   PnL never changes when old data is edited.
+   ===================================================== */
+const num=v=>parseFloat(v)||0;
+const pad2=n=>String(n).padStart(2,'0');
+const currentMonth=()=>{const n=new Date();return n.getFullYear()+'-'+pad2(n.getMonth()+1);};
+function lastDayOfMonth(ym){const[y,m]=ym.split('-').map(Number);return ymd(new Date(y,m,0));}
+function monthOf(d){return(d||'').slice(0,7);}
+
+// All months that have any transaction/payment data, plus the current month
+function monthsWithData(){
+  const set=new Set();
+  [...S.transactions,...S.payments].forEach(x=>{const m=monthOf(x.date);if(/^\d{4}-\d{2}$/.test(m))set.add(m);});
+  set.add(currentMonth());
+  return[...set].sort();
+}
+
+// Per-customer, per-currency net balance as of a cutoff date (inclusive)
+function custNetsAt(cutoff){
+  const map={};
+  const add=(cid,cur,v)=>{if(!cid)return;(map[cid]=map[cid]||{})[cur]=((map[cid]||{})[cur]||0)+v;};
+  S.transactions.filter(t=>t.customerId&&(t.date||'')<=cutoff).forEach(t=>{
+    add(t.customerId,t.againstCurrency,num(t.againstAmt));      // you owe customer
+    add(t.customerId,t.boughtCurrency,-num(t.boughtAmt));       // customer owes you
+  });
+  S.payments.filter(pm=>(pm.date||'')<=cutoff).forEach(pm=>{
+    const amt=num(pm.amount),cur=pm.currency||'PKR';
+    if(pm.customerId)add(pm.customerId,cur,pm.direction==='received'?amt:-amt);
+    if(pm.partyId)   add(pm.partyId,cur,   pm.direction==='received'?-amt:amt);
+  });
+  return map;
+}
+
+// Split balances into debit/credit, converted to PKR (per customer-currency)
+function balancesInPkr(cutoff,rates){
+  const nets=custNetsAt(cutoff);
+  let debit=0,credit=0;const perCur={};
+  Object.keys(nets).forEach(cid=>{
+    Object.entries(nets[cid]).forEach(([cur,v])=>{
+      const pv=v*(rates[cur]||0);
+      if(!pv)return;
+      perCur[cur]=perCur[cur]||{debit:0,credit:0};
+      // net > 0 = you owe the customer (credit); net < 0 = customer owes you (debit)
+      if(pv>0){credit+=pv;perCur[cur].credit+=pv;}
+      else{debit+=-pv;perCur[cur].debit+=-pv;}
+    });
+  });
+  return{debit,credit,balance:debit-credit,perCur};
+}
+
+// Suggested fixed rates for a month = volume-weighted avg PKR rate that month
+function avgRatesForMonth(ym){
+  const pkr={},qty={};
+  S.transactions.filter(t=>monthOf(t.date)===ym).forEach(t=>{
+    const b=t.boughtCurrency,a=t.againstCurrency,ba=num(t.boughtAmt),aa=num(t.againstAmt);
+    if(a==='PKR'){pkr[b]=(pkr[b]||0)+aa;qty[b]=(qty[b]||0)+ba;}
+    if(b==='PKR'){pkr[a]=(pkr[a]||0)+ba;qty[a]=(qty[a]||0)+aa;}
+  });
+  const rates={PKR:1};
+  Object.keys(qty).forEach(c=>{if(c!=='PKR'&&qty[c]>1e-9)rates[c]=pkr[c]/qty[c];});
+  return rates;
+}
+// Rates used for a live "as of now" valuation: latest closed snapshot, else all-time avg
+function currentRates(){
+  const snaps=[...S.snapshots].sort((a,b)=>a.month<b.month?-1:1);
+  if(snaps.length)return snaps[snaps.length-1].rates||{PKR:1};
+  const pkr={},qty={};
+  S.transactions.forEach(t=>{
+    const b=t.boughtCurrency,a=t.againstCurrency,ba=num(t.boughtAmt),aa=num(t.againstAmt);
+    if(a==='PKR'){pkr[b]=(pkr[b]||0)+aa;qty[b]=(qty[b]||0)+ba;}
+    if(b==='PKR'){pkr[a]=(pkr[a]||0)+ba;qty[a]=(qty[a]||0)+aa;}
+  });
+  const rates={PKR:1};
+  Object.keys(qty).forEach(c=>{if(c!=='PKR'&&qty[c]>1e-9)rates[c]=pkr[c]/qty[c];});
+  return rates;
+}
+function getSnapshot(ym){return S.snapshots.find(s=>s.month===ym);}
+function orderedSnapshots(){return[...S.snapshots].sort((a,b)=>a.month<b.month?-1:1);}
+function latestSnapshot(){const a=orderedSnapshots();return a.length?a[a.length-1]:null;}
+// PnL = this month's locked balance − previous closed month's balance
+function snapshotPnls(){
+  const arr=orderedSnapshots(),map={};
+  arr.forEach((s,i)=>{map[s.month]=i===0?(s.balancePkr-(s.prevBalance||0)):(s.balancePkr-arr[i-1].balancePkr);});
+  return map;
+}
+function prevSnapshotBalance(ym){
+  const before=S.snapshots.filter(s=>s.month<ym).sort((a,b)=>a.month<b.month?-1:1);
+  return before.length?before[before.length-1].balancePkr:0;
+}
+// Every non-zero customer balance in the month, as flat rows (includes PKR)
+function monthAccountRows(ym){
+  const nets=custNetsAt(lastDayOfMonth(ym)),out=[];
+  Object.keys(nets).forEach(cid=>{
+    const name=(S.customers.find(c=>c.id===cid)||{}).name||'(unnamed)';
+    Object.entries(nets[cid]).forEach(([cur,v])=>{
+      if(Math.abs(v)<1e-9)return;
+      out.push({customerId:cid,name,currency:cur,amount:v});
+    });
+  });
+  return out;
+}
+// Rows converted to PKR at the given fixed rates, tagged debit/credit
+function snapshotAccounts(ym,rates){
+  return monthAccountRows(ym).map(r=>{
+    const pkr=r.amount*(rates[r.currency]||0);
+    return{...r,pkr,side:pkr>0?'credit':'debit'};
+  }).filter(r=>Math.abs(r.pkr)>1e-6);
+}
+
+/* =====================================================
+   CUSTOMER DUAL-SIDE BALANCE
+   ─────────────────────────────────────────────────────
+   Per transaction linked to a customer:
+     YOU bought → YOU received boughtCurrency from customer
+       → You OWE customer: againstAmt in againstCurrency  (+positive = you owe = GREEN)
+       → Customer OWES you: boughtAmt in boughtCurrency   (-negative = they owe = RED)
+
+   Think of it as two separate ledger columns per currency:
+     youOwe[currency]   > 0 = you owe customer that amount
+     theyOwe[currency]  > 0 = customer owes you that amount
+
+   We merge these into a single net per currency:
+     net[currency] = youOwe[currency] - theyOwe[currency]
+     net > 0  → you owe customer  → GREEN
+     net < 0  → customer owes you → RED
+
+   Payments:
+     direction='received': customer paid you → reduces what they owe you (theyOwe↓) or increases what you owe (net↑)
+     direction='paid':     you paid customer → reduces what you owe (net↓)
+
+   Payment effect on net[currency]:
+     received → net[currency] += amount  (customer paid us, reduces their debt → net moves toward positive / you owe less of a negative)
+     paid     → net[currency] -= amount  (you paid customer, reduces your debt → net moves toward negative)
+
+   Wait — simpler unified view:
+     net[cur] = Σ(youOwe contributions) - Σ(theyOwe contributions) + payment adjustments
+   
+   Let's define:
+     net[cur] > 0  =  you owe customer  (GREEN for customer, good for them)
+     net[cur] < 0  =  customer owes you (RED, they owe you)
+
+   Per transaction where customer is linked:
+     youOwe[againstCurrency]  += againstAmt    (you got their currency, you must pay them back)
+     theyOwe[boughtCurrency]  += boughtAmt     (they get this currency from you, they owe it)
+     → net[againstCurrency]   += againstAmt
+     → net[boughtCurrency]    -= boughtAmt
+
+   Per payment:
+     received (customer paid you in currency X, amount A):
+       → net[X] += A   (their debt decreases = net moves up = less negative / more positive)
+     paid (you paid customer in currency X, amount A):
+       → net[X] -= A   (your debt decreases = net moves down = less positive / more negative)
+   ===================================================== */
+function calcCustNet(custId){
+  const net=Object.fromEntries(CURR.map(c=>[c.code,0]));
+
+  S.transactions.filter(t=>t.customerId===custId).forEach(t=>{
+    // You owe customer the against amount (you got their against currency)
+    net[t.againstCurrency]=(net[t.againstCurrency]||0)+(parseFloat(t.againstAmt)||0);
+    // Customer owes you the bought amount (they get the bought currency)
+    net[t.boughtCurrency]=(net[t.boughtCurrency]||0)-(parseFloat(t.boughtAmt)||0);
+  });
+
+  S.payments.filter(p=>p.customerId===custId || p.partyId===custId).forEach(p=>{
+    const amt=parseFloat(p.amount)||0;
+    const cur=p.currency||'PKR';
+    if(p.customerId===custId){
+      if(p.direction==='received') net[cur]=(net[cur]||0)+amt;
+      else net[cur]=(net[cur]||0)-amt;
+    }
+    if(p.partyId===custId){
+      if(p.direction==='received') net[cur]=(net[cur]||0)-amt; // Party Debited
+      else net[cur]=(net[cur]||0)+amt; // Party Deposited
+    }
+  });
+
+  return net; // net[cur] > 0 = you owe customer (GREEN), < 0 = customer owes you (RED)
+}
+
+function nonZeroNets(net){
+  return Object.entries(net).filter(([,v])=>Math.abs(v)>0.001).map(([code,val])=>({code,val}));
+}
+
+// Which currencies does this customer have activity in?
+function custActiveCurrencies(custId){
+  const codes=new Set();
+  S.transactions.filter(t=>t.customerId===custId).forEach(t=>{
+    codes.add(t.boughtCurrency);
+    codes.add(t.againstCurrency);
+  });
+  S.payments.filter(p=>p.customerId===custId||p.partyId===custId).forEach(p=>codes.add(p.currency||'PKR'));
+  return [...codes].filter(c=>CURR.some(x=>x.code===c));
+}
+
+/* =====================================================
+   BALANCE PILLS  (for customer table)
+   ===================================================== */
+function balPills(custId){
+  const net=calcCustNet(custId);
+  const nz=nonZeroNets(net);
+  if(!nz.length)return'';
+  return nz.map(({code,val})=>{
+    if(val>0){
+      return`<div style="color:var(--green);font-weight:600">${flag(code)} +${fmt(val)}</div>`;
+    } else {
+      return`<div style="color:var(--red);font-weight:600">${flag(code)} ${fmt(Math.abs(val))}</div>`;
+    }
+  }).join('');
+}
+
+/* =====================================================
+   HELPERS
+   ===================================================== */
+function fmt(n,d=2){return isNaN(n)||n==null?'0.00':parseFloat(n).toLocaleString('en-PK',{minimumFractionDigits:d,maximumFractionDigits:d});}
+function fmtD(ts){
+  if(!ts)return'—';
+  if(typeof ts==='string'&&ts.match(/^\d{4}-\d{2}-\d{2}/))
+    return new Date(ts+'T00:00:00').toLocaleDateString('en-PK',{day:'2-digit',month:'short',year:'numeric'});
+  const d=ts.toDate?ts.toDate():new Date(typeof ts==='number'?ts:Date.now());
+  return d.toLocaleDateString('en-PK',{day:'2-digit',month:'short',year:'numeric'});
+}
+function today(){return new Date().toISOString().split('T')[0];}
+
+// Transaction description: "Bought 10,000 AED @ 70 Against PKR" or "Sold 10,000 AED..."
+function txnDesc(t){
+  if(t.isSell) return `Sold ${fmt(t.againstAmt)} ${t.againstCurrency} @ ${fmt(t.rate,4)} Against ${t.boughtCurrency}`;
+  return `Bought ${fmt(t.boughtAmt)} ${t.boughtCurrency} @ ${fmt(t.rate,4)} Against ${t.againstCurrency}`;
+}
+
+/* =====================================================
+   THEME / LANG
+   ===================================================== */
+function toggleTheme(){
+  const t=document.documentElement.dataset.theme==='dark'?'light':'dark';
+  document.documentElement.dataset.theme=t;
+  document.getElementById('theme-lbl').textContent=t==='dark'?'Light Mode':'Dark Mode';
+  localStorage.setItem('theme',t);
+}
+function initTheme(){
+  const t=localStorage.getItem('theme')||'dark';
+  document.documentElement.dataset.theme=t;
+  document.getElementById('theme-lbl').textContent=t==='dark'?'Light Mode':'Dark Mode';
+}
+function toggleLang(){
+  const l=document.documentElement.dataset.lang==='ps'?'en':'ps';
+  document.documentElement.dataset.lang=l;
+  document.documentElement.dir=l==="ps"?"rtl":"ltr"; // Update direction for Pashto
+  document.getElementById('lang-lbl').textContent=l==='en'?'پښتو':'English';
+  tU();
+  navigate(S.page); // Refresh data renders with new translations
+}
+
+/* =====================================================
+   TOAST / CONFIRM
+   ===================================================== */
+function toast(msg,type='info'){
+  const el=document.createElement('div');
+  el.className=`toast ${type}`;
+  el.innerHTML=`<span>${{success:'✅',error:'❌',info:'ℹ️'}[type]}</span><span>${esc(msg)}</span>`;
+  document.getElementById('toast-box').appendChild(el);
+  setTimeout(()=>el.remove(),3200);
+}
+let confRes=null;
+function confirm2(title,msg){
+  return new Promise(r=>{
+    confRes=r;
+    document.getElementById('c-title').textContent=title;
+    document.getElementById('c-msg').textContent=msg;
+    document.getElementById('conf-ov').classList.add('open');
+  });
+}
+document.getElementById('c-cancel').onclick=()=>{document.getElementById('conf-ov').classList.remove('open');confRes&&confRes(false);};
+document.getElementById('c-ok').onclick=()=>{document.getElementById('conf-ov').classList.remove('open');confRes&&confRes(true);};
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.overlay').forEach(ov=>ov.addEventListener('click',e=>{if(e.target===ov)closeModal(ov.id);}));
+
+/* =====================================================
+   NAVIGATION
+   ===================================================== */
+const getTitles=()=>({dashboard:t('dashboard'),transactions:t('transactions'),payments:t('payments'),
+  customers:t('customers'),inventory:t('inventory'),pnl:t('pnl'),logs:t('logs'),backup:t('backup'),
+  updates:t('updates')});
+
+/* In-app back stack (used by the Android hardware back button). */
+const navHistory=[];
+function navPush(page){
+  if(!page)return;
+  if(navHistory[navHistory.length-1]===page)return;
+  navHistory.push(page);
+  if(navHistory.length>25)navHistory.shift();
+}
+
+document.querySelectorAll('.nav-item[data-page]').forEach(item=>{
+  item.addEventListener('click',()=>{
+    document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
+    item.classList.add('active');
+    S.custView='list'; // leaving the customer sub-view when navigating
+    navigate(item.dataset.page);
+  });
+});
+
+function toggleMobileMenu(){
+  document.querySelector('.sidebar').classList.toggle('open');
+}
+async function navigate(page,opts={}){
+  if(!opts.fromBack){
+    // The dashboard is the app root: tapping it clears the back stack.
+    if(page==='dashboard')navHistory.length=0;
+    else if(page!==S.page)navPush(S.page);
+  }
+  S.page=page;
+  document.getElementById('page-title').textContent=getTitles()[page]||page;
+  document.getElementById('content').innerHTML='<div class="spinner"></div>';
+  await loadAll();
+  ({dashboard:renderDash,transactions:renderTxns,payments:renderPays,
+    customers:renderCusts,inventory:renderInv,pnl:renderPnL,
+    logs:renderLogs,backup:renderBackup,updates:renderUpdates}[page]||renderDash)();
+  // Close mobile menu after navigation
+  document.querySelector('.sidebar').classList.remove('open');
+}
+
+/* =====================================================
+   DASHBOARD
+   ===================================================== */
+function renderDash(){
+  const inv=calcInv(S.transactions);
+  const last=latestSnapshot();
+  const lastPnl=last?(snapshotPnls()[last.month]||0):0;
+  const liveBal=balancesInPkr(ymd(new Date()),currentRates());
+
+  // Calculate totals per currency across all customers
+  const totals={};
+  CURR.forEach(c=>totals[c.code]={debit:0,credit:0});
+  S.customers.forEach(c=>{
+    const net=calcCustNet(c.id);
+    CURR.forEach(c=>{
+      const val=net[c.code]||0;
+      if(val<0) totals[c.code].debit+=Math.abs(val);
+      else totals[c.code].credit+=val;
+    });
+  });
+
+  document.getElementById('content').innerHTML=`
+    <div class="grid g4 sg">
+      <div class="stat-card">
+        <div class="stat-icon ${lastPnl>=0?'si-gold':'si-red'}">📈</div>
+        <div class="stat-val ${lastPnl>=0?'fc-gold':'fc-red'}">₨ ${fmt(lastPnl)}</div>
+        <div class="stat-lbl">Last Month Profit</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:5px">${last?last.month:'No month closed yet'}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon si-red">⬆️</div>
+        <div class="stat-val fc-red">₨ ${fmt(liveBal.debit)}</div>
+        <div class="stat-lbl">Total Debit (they owe you)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon si-blue">⬇️</div>
+        <div class="stat-val" style="color:var(--blue)">₨ ${fmt(liveBal.credit)}</div>
+        <div class="stat-lbl">Total Credit (you owe them)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon ${liveBal.balance>=0?'si-green':'si-red'}">⚖️</div>
+        <div class="stat-val ${liveBal.balance>=0?'fc-green':'fc-red'}">₨ ${fmt(liveBal.balance)}</div>
+        <div class="stat-lbl">Net Balance (Debit − Credit)</div>
+      </div>
+    </div>
+
+    <div class="card sg">
+      <div class="card-hd"><div class="card-title">Customer Totals by Currency</div></div>
+      ${CURR.map(c=>{
+        const t=totals[c.code];
+        const bal=t.debit-t.credit;
+        return`<div class="inv-row cust-total-row">
+          <div class="inv-left">
+            <div class="inv-flag">${flag(c.code)}</div>
+            <div><div class="inv-name">${c.code}</div><div class="inv-desc">${c.name}</div></div>
+          </div>
+          <div class="inv-amt" style="color:var(--red)">${fmt(t.debit)} Dr</div>
+          <div class="inv-amt" style="color:var(--blue)">${fmt(t.credit)} Cr</div>
+          <div class="inv-amt" style="color:${bal>=0?'var(--green)':'var(--red)'}">${fmt(bal)}</div>
+        </div>`;
+      }).join('')}
+    </div>
+
+    <div class="grid g2 sg">
+      <div class="card">
+        <div class="card-hd"><div class="card-title">Currency Inventory</div></div>
+        ${CURR.map(c=>`
+          <div class="inv-row">
+            <div class="inv-left">
+              <div class="inv-flag">${flag(c.code)}</div>
+              <div><div class="inv-name">${c.code}</div><div class="inv-desc">${c.name}</div></div>
+            </div>
+            <div class="inv-amt" style="color:${inv[c.code]<-0.001?'var(--red)':'var(--green)'}">${fmt(inv[c.code])} ${c.code}</div>
+          </div>`).join('')}
+      </div>
+      <div class="card">
+        <div class="card-hd"><div class="card-title">Volume by Currency</div></div>
+        <div class="chart-wrap"><canvas id="dash-chart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="card sg">
+      <div class="card-hd">
+        <div class="card-title">${t('cust_bals')}</div>
+        <button class="btn btn-ghost btn-sm" onclick="navigate('customers')">View All →</button>
+      </div>
+      ${S.customers.length===0?`<div class="empty"><div class="ei">👥</div><p>No customers yet</p></div>`:`
+      <table class="cust-table">
+        <thead><tr><th style="padding-left:14px">Customer</th><th>Phone</th><th>Balance</th><th></th></tr></thead>
+        <tbody>${S.customers.map(c=>`<tr onclick="openLedger('${c.id}')">
+          <td style="padding-left:14px;font-weight:600">${esc(c.name)}</td>
+          <td class="tc">${esc(c.phone)||'—'}</td>
+          <td><div class="bal-pills">${balPills(c.id)}</div></td>
+          <td><button class="btn btn-ghost btn-sm ledger-btn" onclick="event.stopPropagation();openLedger('${c.id}')">📄 Ledger</button></td>
+        </tr>`).join('')}</tbody>
+      </table>`}
+    </div>
+
+    <div class="card">
+      <div class="card-hd">
+        <div class="card-title">${t('recent_txns')}</div>
+        <button class="btn btn-ghost btn-sm" onclick="navigate('transactions')">View All →</button>
+      </div>
+      ${buildTxnTable(S.transactions.slice(0,7))}
+    </div>
+  `;
+
+  setTimeout(()=>{
+    const ctx=document.getElementById('dash-chart');if(!ctx)return;
+    const counts=CURR.map(c=>S.transactions.reduce((s,t)=>t.boughtCurrency===c.code||t.againstCurrency===c.code?s+1:s,0));
+    new Chart(ctx,{type:'doughnut',
+      data:{labels:CURR.map(c=>c.code),datasets:[{data:counts,backgroundColor:CURR.map(c=>c.color),borderWidth:0}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#7c8699',font:{family:'Inter',size:12},padding:10}}}}
+    });
+  },80);
+}
+
+/* =====================================================
+   TRANSACTIONS
+   ===================================================== */
+let ntDir='buy';
+function setNtDir(dir){
+  ntDir=dir;
+  const isB=dir==='buy';
+  document.getElementById('nt-dir-buy').className='dir-btn'+(isB?' active-recv':'');
+  document.getElementById('nt-dir-sell').className='dir-btn'+(!isB?' active-paid':'');
+  document.getElementById('lbl-bought').textContent=isB?t('curr_bought'):t('curr_sold');
+  document.getElementById('lbl-ba').textContent=isB?t('bought_amt'):t('sold_amt');
+  ntPreview();
+}
+
+function renderTxns(){
+  ntDir='buy';
+  document.getElementById('content').innerHTML=`
+    <div class="entry-panel">
+      <div class="ep-title">${t('new_txn')}</div>
+      <div class="fg mb4">
+        <label class="fl">${t('direction')||'Direction'}</label>
+        <div class="dir-toggle">
+          <button class="dir-btn active-recv" id="nt-dir-buy" onclick="setNtDir('buy')">⬇️ Buy</button>
+          <button class="dir-btn" id="nt-dir-sell" onclick="setNtDir('sell')">⬆️ Sell</button>
+        </div>
+      </div>
+      <div class="fr6 txn-fields">
+        <div class="fg"><label class="fl" id="lbl-bought">${t('curr_bought')}</label>
+          <select class="fc" id="nt-bought" onchange="ntFwd()">${cOpts('AED')}</select></div>
+        <div class="fg"><label class="fl">Against Currency</label>
+          <select class="fc" id="nt-against" onchange="ntFwd()">${cOpts('PKR')}</select></div>
+        <div class="fg"><label class="fl">Rate</label>
+          <input type="number" class="fc" id="nt-rate" placeholder="e.g. 70" step="any" oninput="ntFwd()"/></div>
+        <div class="fg"><label class="fl" id="lbl-ba">${t('bought_amt')}</label>
+          <input type="number" class="fc" id="nt-ba" placeholder="e.g. 10000" step="any" oninput="ntFwd()"/></div>
+        <div class="fg"><label class="fl">Against Amount</label>
+          <input type="number" class="fc" id="nt-aa" placeholder="auto" step="any" oninput="ntRev()"/></div>
+        <div class="fg"><label class="fl">Customer (opt.)</label>
+          ${custAutoHTML('nt-cust-input','nt-cust','nt-cust-drop','')}</div>
+      </div>
+      <div class="fr3 mt3 txn-fields">
+        <div class="fg"><label class="fl">Date</label>
+          <input type="date" class="fc" id="nt-date" value="${today()}"/></div>
+        <div class="fg"><label class="fl">Notes</label>
+          <input class="fc" id="nt-notes" placeholder="Optional notes"/></div>
+        <div class="fg" style="justify-content:flex-end">
+          <label class="fl">&nbsp;</label>
+          <button class="btn btn-primary" style="width:100%;height:36px" onclick="saveTxn()">💾 Save Transaction</button>
+        </div>
+      </div>
+      <div id="nt-preview"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-hd">
+        <div class="card-title">${t('all_txns')}</div>
+        <div class="fbar">
+          <div class="sw"><span class="sw-icon">🔍</span>
+            <input class="fc" placeholder="Search…" id="txn-q" oninput="filterTxns()"/></div>
+          <select class="fc" id="txn-fc" onchange="filterTxns()">
+            <option value="">All Currencies</option>
+            ${CURR.map(c=>`<option value="${c.code}">${c.code}</option>`).join('')}
+          </select>
+          <input type="date" class="fc" id="txn-fd1" onchange="filterTxns()"/>
+          <input type="date" class="fc" id="txn-fd2" onchange="filterTxns()"/>
+        </div>
+      </div>
+      <div id="txn-list">${buildTxnTable(S.transactions)}</div>
+    </div>
+  `;
+}
+
+function buildTxnTable(txns){
+  if(!txns||!txns.length)return`<div class="empty"><div class="ei">💱</div><p>No transactions yet</p></div>`;
+  return`<div class="tbl-wrap"><table>
+    <thead><tr>
+      <th style="padding-left:14px">Date</th>
+      <th>Description</th>
+      <th>Bought</th>
+      <th>Against</th>
+      <th>Customer</th>
+      <th>Notes</th>
+      <th>Actions</th>
+    </tr></thead>
+    <tbody>${txns.map(t=>{
+      const cu=S.customers.find(c=>c.id===t.customerId);
+      return`<tr>
+        <td style="padding-left:14px;color:var(--text2);white-space:nowrap">${fmtD(t.date||t.createdAt)}</td>
+        <td style="font-weight:500">${txnDesc(t)}</td>
+        <td><span style="display:inline-flex;align-items:center;gap:5px">${flag(t.boughtCurrency)} <strong>${fmt(t.boughtAmt)} ${t.boughtCurrency}</strong></span></td>
+        <td><span style="display:inline-flex;align-items:center;gap:5px">${flag(t.againstCurrency)} <span class="tc">${fmt(t.againstAmt)} ${t.againstCurrency}</span></span></td>
+        <td>${cu?`<span class="badge b-blue">${esc(cu.name)}</span>`:'<span class="tc">—</span>'}</td>
+        <td class="tc">${esc(t.notes)||'—'}</td>
+        <td><div class="acts">
+          <button class="btn btn-ghost btn-sm" onclick="openEditTxn('${t.id}')">✏️</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteTxn('${t.id}')">🗑️</button>
+        </div></td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table></div>`;
+}
+
+function ntFwd(){
+  const ba=parseFloat(document.getElementById('nt-ba')?.value)||0;
+  const r=parseFloat(document.getElementById('nt-rate')?.value)||0;
+  if(ba>0&&r>0)document.getElementById('nt-aa').value=(ba*r).toFixed(2);
+  ntPreview();
+}
+function ntRev(){
+  const aa=parseFloat(document.getElementById('nt-aa')?.value)||0;
+  const r=parseFloat(document.getElementById('nt-rate')?.value)||0;
+  if(aa>0&&r>0)document.getElementById('nt-ba').value=(aa/r).toFixed(4);
+  ntPreview();
+}
+function ntPreview(){
+  const bought=document.getElementById('nt-bought')?.value;
+  const against=document.getElementById('nt-against')?.value;
+  const ba=parseFloat(document.getElementById('nt-ba')?.value)||0;
+  const aa=parseFloat(document.getElementById('nt-aa')?.value)||0;
+  const el=document.getElementById('nt-preview');if(!el)return;
+  if(!ba||!aa){el.innerHTML='';return;}
+  const inv=calcInv(S.transactions);
+  if(ntDir==='sell'){
+    el.innerHTML=`<div class="inv-preview">
+      <span class="inv-chip ${(inv[bought]-ba)<0?'neg':''}">${bought} balance after: ${fmt(inv[bought]-ba)}</span>
+      <span class="inv-chip">${against} balance after: ${fmt(inv[against]+aa)}</span>
+    </div>`;
+  } else {
+    el.innerHTML=`<div class="inv-preview">
+      <span class="inv-chip">${bought} balance after: ${fmt(inv[bought]+ba)}</span>
+      <span class="inv-chip ${(inv[against]-aa)<0?'neg':''}">${against} balance after: ${fmt(inv[against]-aa)}</span>
+    </div>`;
+  }
+}
+function filterTxns(){
+  let txns=[...S.transactions];
+  const q=(document.getElementById('txn-q')?.value||'').toLowerCase();
+  const cur=document.getElementById('txn-fc')?.value||'';
+  const d1=document.getElementById('txn-fd1')?.value||'';
+  const d2=document.getElementById('txn-fd2')?.value||'';
+  if(q)txns=txns.filter(t=>(t.boughtCurrency+t.againstCurrency+(t.notes||'')).toLowerCase().includes(q));
+  if(cur)txns=txns.filter(t=>t.boughtCurrency===cur||t.againstCurrency===cur);
+  if(d1)txns=txns.filter(t=>(t.date||'')>=d1);
+  if(d2)txns=txns.filter(t=>(t.date||'')<=d2);
+  document.getElementById('txn-list').innerHTML=buildTxnTable(txns);
+}
+async function saveTxn(){
+  let boughtCurrency=document.getElementById('nt-bought')?.value;
+  let againstCurrency=document.getElementById('nt-against')?.value;
+  const rate=parseFloat(document.getElementById('nt-rate')?.value)||0;
+  let boughtAmt=parseFloat(document.getElementById('nt-ba')?.value)||0;
+  let againstAmt=parseFloat(document.getElementById('nt-aa')?.value)||0;
+  const customerId=document.getElementById('nt-cust')?.value||null;
+  const date=document.getElementById('nt-date')?.value||today();
+  const notes=document.getElementById('nt-notes')?.value.trim()||'';
+  if(!boughtAmt||!againstAmt){toast('Enter both amounts','error');return;}
+  if(boughtCurrency===againstCurrency){toast('Currencies must differ','error');return;}
+  const isSell=ntDir==='sell';
+  if(isSell){
+    const tc=boughtCurrency; boughtCurrency=againstCurrency; againstCurrency=tc;
+    const ta=boughtAmt; boughtAmt=againstAmt; againstAmt=ta;
+  }
+  await DB.add('transactions',{boughtCurrency,againstCurrency,rate,boughtAmt,againstAmt,customerId,date,notes,isSell});
+  toast('Transaction saved ✓','success');
+  await loadAll();
+  ['nt-rate','nt-ba','nt-aa','nt-notes'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  const p=document.getElementById('nt-preview');if(p)p.innerHTML='';
+  document.getElementById('txn-list').innerHTML=buildTxnTable(S.transactions);
+}
+function setEtDir(dir){
+  const isB=dir==='buy';
+  const eBuy=document.getElementById('et-dir-buy');
+  if(eBuy){
+    eBuy.className='dir-btn'+(isB?' active-recv':'');
+    document.getElementById('et-dir-sell').className='dir-btn'+(!isB?' active-paid':'');
+    document.getElementById('et-lbl-bought').textContent=isB?t('curr_bought'):t('curr_sold');
+    document.getElementById('et-lbl-ba').textContent=isB?t('bought_amt'):t('sold_amt');
+  }
+}
+function openEditTxn(id){
+  S.editId=id;
+  const t=S.transactions.find(x=>x.id===id);if(!t)return;
+  setEtDir(t.isSell?'sell':'buy');
+  document.getElementById('et-bought').innerHTML=cOpts(t.isSell?t.againstCurrency:t.boughtCurrency);
+  document.getElementById('et-against').innerHTML=cOpts(t.isSell?t.boughtCurrency:t.againstCurrency);
+  document.getElementById('et-rate').value=t.rate||'';
+  document.getElementById('et-ba').value=t.isSell?t.againstAmt:t.boughtAmt;
+  document.getElementById('et-aa').value=t.isSell?t.boughtAmt:t.againstAmt;
+  const etCust=S.customers.find(c=>c.id===t.customerId);
+  document.getElementById('et-cust-input').value=etCust?esc(etCust.name):'';
+  document.getElementById('et-cust').value=t.customerId||'';
+  document.getElementById('et-date').value=t.date||today();
+  document.getElementById('et-notes').value=t.notes||'';
+  openModal('mod-txn-edit');
+}
+function eCalcFwd(){
+  const ba=parseFloat(document.getElementById('et-ba')?.value)||0;
+  const r=parseFloat(document.getElementById('et-rate')?.value)||0;
+  if(ba>0&&r>0)document.getElementById('et-aa').value=(ba*r).toFixed(2);
+}
+function eCalcRev(){
+  const aa=parseFloat(document.getElementById('et-aa')?.value)||0;
+  const r=parseFloat(document.getElementById('et-rate')?.value)||0;
+  if(aa>0&&r>0)document.getElementById('et-ba').value=(aa/r).toFixed(4);
+}
+async function saveEditTxn(){
+  const id=S.editId;if(!id)return;
+  const old=S.transactions.find(x=>x.id===id);
+  const isSell=document.getElementById('et-dir-sell').className.includes('active-paid');
+  let boughtCurrency=document.getElementById('et-bought').value;
+  let againstCurrency=document.getElementById('et-against').value;
+  const rate=parseFloat(document.getElementById('et-rate').value)||0;
+  let boughtAmt=parseFloat(document.getElementById('et-ba').value)||0;
+  let againstAmt=parseFloat(document.getElementById('et-aa').value)||0;
+  
+  if(isSell){
+    const tc=boughtCurrency; boughtCurrency=againstCurrency; againstCurrency=tc;
+    const ta=boughtAmt; boughtAmt=againstAmt; againstAmt=ta;
+  }
+
+  const data={
+    boughtCurrency, againstCurrency, rate, boughtAmt, againstAmt,
+    customerId:document.getElementById('et-cust').value||null,
+    date:document.getElementById('et-date').value,
+    notes:document.getElementById('et-notes').value,
+    isSell
+  };
+  await logEdit('transactions',id,old,data);
+  await DB.update('transactions',id,data);
+  toast('Updated ✓','success');S.editId=null;
+  closeModal('mod-txn-edit');await navigate('transactions');
+}
+async function deleteTxn(id){
+  const ok=await confirm2('Delete Transaction','Permanently delete this transaction?');if(!ok)return;
+  await DB.delete('transactions',id);toast('Deleted','success');
+  await loadAll();document.getElementById('txn-list').innerHTML=buildTxnTable(S.transactions);
+}
+
+/* =====================================================
+   PAYMENTS
+   ===================================================== */
+let npDir='received';
+function setNpDir(dir){
+  npDir=dir;
+  document.getElementById('np-dir-recv').className='dir-btn'+(dir==='received'?' active-recv':'');
+  document.getElementById('np-dir-paid').className='dir-btn'+(dir==='paid'?' active-paid':'');
+}
+
+function renderPays(){
+  npDir='received';
+  document.getElementById('content').innerHTML=`
+    <div class="entry-panel">
+      <div class="ep-title">${t('new_pay')}</div>
+      <div class="fg mb4">
+        <label class="fl">Direction</label>
+        <div class="dir-toggle">
+          <button class="dir-btn active-recv" id="np-dir-recv" onclick="setNpDir('received')">✅ Received</button>
+          <button class="dir-btn" id="np-dir-paid" onclick="setNpDir('paid')">💸 Paid Out</button>
+        </div>
+      </div>
+      <div class="fr6 txn-fields">
+        <div class="fg"><label class="fl">Customer</label>
+          ${custAutoHTML('np-cust-input','np-cust','np-cust-drop','')}</div>
+        <div class="fg"><label class="fl">Currency</label>
+          <select class="fc" id="np-curr">${cOpts('PKR')}</select></div>
+        <div class="fg"><label class="fl">Amount</label>
+          <input type="number" class="fc" id="np-amt" placeholder="0.00" step="any"/></div>
+        <div class="fg"><label class="fl">Method</label>
+          <select class="fc" id="np-method"><option>Cash</option><option>Bank</option><option>EasyPaisa</option><option>JazzCash</option><option>Other</option></select></div>
+        <div class="fg"><label class="fl">Party (opt)</label>
+          ${custAutoHTML('np-party-input','np-party','np-party-drop','')}</div>
+        <div class="fg"><label class="fl">Date</label>
+          <input type="date" class="fc" id="np-date" value="${today()}"/></div>
+      </div>
+      <div class="fr2 mt3 txn-fields">
+        <div class="fg"><label class="fl">Notes</label>
+          <input class="fc" id="np-notes" placeholder="Optional"/></div>
+        <div class="fg" style="justify-content:flex-end">
+          <label class="fl">&nbsp;</label>
+          <button class="btn btn-primary" style="width:100%;height:36px" onclick="savePayment()">💾 Save Payment</button>
+        </div>
+      </div>
+    </div>
+    <div class="card" id="pay-card">
+      <div class="card-hd"><div class="card-title">${t('all_pays')}</div></div>
+      ${buildPayTable(S.payments)}
+    </div>
+  `;
+}
+
+function buildPayTable(pays){
+  if(!pays||!pays.length)return`<div class="empty"><div class="ei">💳</div><p>No payments yet</p></div>`;
+  return`<div class="tbl-wrap"><table>
+    <thead><tr>
+      <th style="padding-left:14px">Date</th><th>Direction</th><th>Customer</th>
+      <th>Amount</th><th>Method</th><th>Notes</th><th>Actions</th>
+    </tr></thead>
+    <tbody>${pays.map(p=>{
+      const cu=S.customers.find(c=>c.id===p.customerId);
+      const pty=S.customers.find(c=>c.id===p.partyId);
+      const isRecv=p.direction!=='paid';
+      const custStr=cu?(pty?`${esc(cu.name)} &rarr; ${esc(pty.name)}`:esc(cu.name)):'<span class="tc">—</span>';
+      return`<tr>
+        <td style="padding-left:14px;color:var(--text2)">${fmtD(p.date||p.createdAt)}</td>
+        <td><span class="badge ${isRecv?'b-green':'b-red'}">${isRecv?'✅ Received':'💸 We Paid'}</span></td>
+        <td class="fw7">${custStr}</td>
+        <td class="fw7" style="color:${isRecv?'var(--green)':'var(--red)'}">
+          ${isRecv?'+':'−'}${fmt(p.amount)} ${p.currency||'PKR'}
+        </td>
+        <td><span class="badge b-gray">${p.method||'Cash'}</span></td>
+        <td class="tc">${esc(p.notes)||'—'}</td>
+        <td><div class="acts">
+          <button class="btn btn-ghost btn-sm" onclick="openEditPay('${p.id}')">✏️</button>
+          <button class="btn btn-danger btn-sm" onclick="deletePay('${p.id}')">🗑️</button>
+        </div></td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table></div>`;
+}
+
+async function savePayment(){
+  const customerId=document.getElementById('np-cust')?.value||'';
+  const currency=document.getElementById('np-curr')?.value||'PKR';
+  const amount=parseFloat(document.getElementById('np-amt')?.value)||0;
+  const method=document.getElementById('np-method')?.value||'Cash';
+  const partyId=document.getElementById('np-party')?.value||null;
+  const date=document.getElementById('np-date')?.value||today();
+  const notes=document.getElementById('np-notes')?.value.trim()||'';
+  const direction=npDir;
+  if(!customerId){toast('Select a customer','error');return;}
+  if(customerId===partyId){toast('Customer and Party cannot be same','error');return;}
+  if(!amount){toast('Enter amount','error');return;}
+  await DB.add('payments',{customerId,currency,amount,method,partyId,date,notes,direction});
+  toast('Payment saved ✓','success');
+  await loadAll();
+  ['np-amt','np-notes'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  const pe=document.getElementById('np-party');if(pe)pe.value='';
+  const peInput=document.getElementById('np-party-input');if(peInput)peInput.value='';
+  const card=document.getElementById('pay-card');
+  if(card)card.innerHTML=`<div class="card-hd"><div class="card-title">All Payments</div></div>${buildPayTable(S.payments)}`;
+}
+
+let epDir='received';
+function setEpDir(dir){
+  epDir=dir;
+  document.getElementById('ep-dir-recv').className='dir-btn'+(dir==='received'?' active-recv':'');
+  document.getElementById('ep-dir-paid').className='dir-btn'+(dir==='paid'?' active-paid':'');
+}
+function openEditPay(id){
+  S.editId=id;
+  const p=S.payments.find(x=>x.id===id);if(!p)return;
+  epDir=p.direction||'received';
+  const epCust=S.customers.find(c=>c.id===p.customerId);
+  document.getElementById('ep-cust-input').value=epCust?esc(epCust.name):'';
+  document.getElementById('ep-cust').value=p.customerId||'';
+  document.getElementById('ep-curr').innerHTML=cOpts(p.currency||'PKR');
+  const epParty=S.customers.find(c=>c.id===p.partyId);
+  document.getElementById('ep-party-input').value=epParty?esc(epParty.name):'';
+  document.getElementById('ep-party').value=p.partyId||'';
+  document.getElementById('ep-amt').value=p.amount||'';
+  document.getElementById('ep-method').value=p.method||'Cash';
+  document.getElementById('ep-date').value=p.date||today();
+  document.getElementById('ep-notes').value=p.notes||'';
+  setTimeout(()=>setEpDir(epDir),30);
+  openModal('mod-pay-edit');
+}
+async function saveEditPayment(){
+  const id=S.editId;if(!id)return;
+  const old=S.payments.find(x=>x.id===id);
+  const cId = document.getElementById('ep-cust').value;
+  const pId = document.getElementById('ep-party').value||null;
+  if(cId===pId){toast('Customer and Party cannot be same','error');return;}
+  const data={
+    customerId:cId,
+    currency:document.getElementById('ep-curr').value||'PKR',
+    amount:parseFloat(document.getElementById('ep-amt').value)||0,
+    method:document.getElementById('ep-method').value,
+    partyId:pId,
+    date:document.getElementById('ep-date').value,
+    notes:document.getElementById('ep-notes').value,
+    direction:epDir
+  };
+  await logEdit('payments',id,old,data);
+  await DB.update('payments',id,data);
+  toast('Updated ✓','success');S.editId=null;
+  closeModal('mod-pay-edit');await navigate('payments');
+}
+async function deletePay(id){
+  const ok=await confirm2('Delete Payment','Remove this payment?');if(!ok)return;
+  await DB.delete('payments',id);toast('Deleted','success');await navigate('payments');
+}
+
+/* =====================================================
+   CUSTOMERS
+   ===================================================== */
+function renderCusts(){
+  if(S.custView==='ledger'&&S.ledgerCustId){renderLedgerSection();return;}
+  document.getElementById('content').innerHTML=`
+    <div class="fbet mb3">
+      <div class="sw"><span class="sw-icon">🔍</span>
+        <input class="fc" placeholder="Search customers…" id="cu-q" oninput="filterCusts()"/></div>
+      <button class="btn btn-primary" onclick="openCustModal()">+ New Customer</button>
+    </div>
+    <div class="card" id="cu-tbl">${buildCustTable(S.customers)}</div>
+  `;
+}
+function buildCustTable(custs){
+  if(!custs.length)return`<div class="empty"><div class="ei">👥</div><p>No customers yet</p></div>`;
+  return`<table class="cust-table">
+    <thead><tr>
+      <th style="padding-left:14px">Name</th><th>Phone</th><th>Balance</th><th>Txns</th><th>Actions</th>
+    </tr></thead>
+    <tbody>${custs.map(c=>{
+      const tc=S.transactions.filter(t=>t.customerId===c.id).length;
+      return`<tr onclick="openLedger('${c.id}')">
+        <td style="padding-left:14px;font-weight:600">${esc(c.name)}</td>
+        <td class="tc">${esc(c.phone)||'—'}</td>
+        <td><div class="bal-pills">${balPills(c.id)}</div></td>
+        <td class="tc">${tc}</td>
+        <td><div class="acts">
+          <button class="btn btn-ghost btn-sm ledger-btn" onclick="event.stopPropagation();openLedger('${c.id}')">📄 Ledger</button>
+          <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation();openCustModal('${c.id}')">✏️</button>
+          <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteCust('${c.id}')">🗑️</button>
+        </div></td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table>`;
+}
+function filterCusts(){
+  const q=(document.getElementById('cu-q')?.value||'').toLowerCase();
+  document.getElementById('cu-tbl').innerHTML=buildCustTable(
+    S.customers.filter(c=>(c.name||'').toLowerCase().includes(q)||(c.phone||'').includes(q))
+  );
+}
+function openCustModal(id=null){
+  S.editId=id;
+  document.getElementById('cust-mod-title').textContent=id?'Edit Customer':'New Customer';
+  const c=id?S.customers.find(x=>x.id===id):null;
+  document.getElementById('c-name').value=c?.name||'';
+  document.getElementById('c-phone').value=c?.phone||'';
+  openModal('mod-cust');
+}
+async function saveCustomer(){
+  const name=document.getElementById('c-name').value.trim();
+  const phone=document.getElementById('c-phone').value.trim();
+  if(!name){toast('Name required','error');return;}
+  if(S.editId){
+    const old=S.customers.find(x=>x.id===S.editId);
+    await logEdit('customers',S.editId,old,{name,phone});
+    await DB.update('customers',S.editId,{name,phone});
+    toast('Updated ✓','success');
+  }else{
+    await DB.add('customers',{name,phone});
+    toast('Customer added ✓','success');
+  }
+  S.editId=null;closeModal('mod-cust');await navigate('customers');
+}
+async function deleteCust(id){
+  const ok=await confirm2('Delete Customer','Remove this customer and all related transactions & payments?');if(!ok)return;
+  // Cascade delete transactions and payments for this customer
+  const txns=S.transactions.filter(t=>t.customerId===id);
+  const pays=S.payments.filter(p=>p.customerId===id||p.partyId===id);
+  for(const t of txns){await DB.delete('transactions',t.id);}
+  for(const p of pays){await DB.delete('payments',p.id);}
+  await DB.delete('customers',id);
+  toast('Deleted with related data','success');await navigate('customers');
+}
+
+/* =====================================================
+   LEDGER — inline section under the Customers tab
+   ===================================================== */
+function openLedger(custId){
+  const c=S.customers.find(x=>x.id===custId);if(!c)return;
+  S.ledgerCustId=custId;
+  S.custView='ledger';
+  // Default to the customer's first active currency (falls back to PKR)
+  const activeCurrs=custActiveCurrencies(custId);
+  S.ledgerCurrency=activeCurrs[0]||'PKR';
+
+  if(S.page!=='customers'){
+    document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
+    document.querySelector('.nav-item[data-page="customers"]')?.classList.add('active');
+    navigate('customers');
+  }else{
+    renderLedgerSection();
+  }
+}
+
+function backToCusts(){
+  S.custView='list';
+  S.ledgerCustId=null;
+  document.getElementById('page-title').textContent=t('customers');
+  renderCusts();
+}
+
+function selectLedgerCurr(code){
+  S.ledgerCurrency=code;
+  renderLedgerSection();
+}
+
+function renderLedgerSection(){
+  const custId=S.ledgerCustId;
+  const currency=S.ledgerCurrency||'PKR';
+  const c=S.customers.find(x=>x.id===custId);
+  if(!c){backToCusts();return;}
+  document.getElementById('page-title').textContent='Customer Ledger';
+  const net=calcCustNet(custId);
+  const netVal=net[currency]||0;
+
+  // Filter entries relevant to this currency
+  const txns=S.transactions.filter(t=>
+    t.customerId===custId&&(t.boughtCurrency===currency||t.againstCurrency===currency)
+  );
+  const pays=S.payments.filter(p=>
+    (p.customerId===custId||p.partyId===custId)&&(p.currency||'PKR')===currency
+  );
+
+  const entries=[
+    ...txns.map(t=>({...t,_k:'txn'})),
+    ...pays.map(p=>({...p,_k:'pay'}))
+  ].sort((a,b)=>{
+    const da=a.date||'',db2=b.date||'';
+    return da>db2?1:da<db2?-1:(a.createdAt||0)-(b.createdAt||0);
+  });
+
+  // Running balance for this currency only
+  let run=0;
+  const rows=entries.map(e=>{
+    let delta=0,desc='',type='';
+    if(e._k==='txn'){
+      desc=txnDesc(e);
+      type='txn';
+      if(e.againstCurrency===currency){
+        // You owe customer this currency → positive
+        delta=+(parseFloat(e.againstAmt)||0);
+      } else if(e.boughtCurrency===currency){
+        // Customer owes you this currency → negative
+        delta=-(parseFloat(e.boughtAmt)||0);
+      }
+    } else {
+      const amt=parseFloat(e.amount)||0;
+      type='pay';
+      if(e.customerId===custId){
+        if(e.direction==='received'){
+          delta=+amt;
+          desc=e.partyId?`Received (to Party) – ${e.method||'Cash'}`:`Payment received – ${e.method||'Cash'}`;
+        } else {
+          delta=-amt;
+          desc=e.partyId?`Paid (from Party) – ${e.method||'Cash'}`:`We paid customer – ${e.method||'Cash'}`;
+        }
+      } else if(e.partyId===custId){
+        const fromCust = S.customers.find(cx=>cx.id===e.customerId)?.name||'Unknown';
+        if(e.direction==='received'){
+          delta=-amt;
+          desc=`Debited via ${fromCust} – ${e.method||'Cash'}`;
+        } else {
+          delta=+amt;
+          desc=`Deposited via ${fromCust} – ${e.method||'Cash'}`;
+        }
+      }
+    }
+    run+=delta;
+    return{e,desc,delta,run,type};
+  });
+
+  // Balance card
+  const balClass=netVal>0.001?'you-owe':netVal<-0.001?'they-owe':'zero';
+  const balColor=netVal>0.001?'var(--green)':netVal<-0.001?'var(--red)':'var(--text2)';
+  const balLabel=netVal>0.001?'You Owe Customer':netVal<-0.001?'Customer Owes You':'Settled';
+
+  // Currency sub-tabs (only when this customer has more than one active currency)
+  const activeCurrs=custActiveCurrencies(custId);
+  const tabs=activeCurrs.length>1?`
+    <div class="ledg-tabs">
+      ${activeCurrs.map(code=>`<button class="ledg-tab ${code===currency?'active':''}" onclick="selectLedgerCurr('${code}')">${flag(code)} ${code}</button>`).join('')}
+    </div>`:'';
+
+  document.getElementById('content').innerHTML=`
+    <div class="ledg-hd">
+      <button class="btn btn-ghost" onclick="backToCusts()">← Back to Customers</button>
+      <button class="btn btn-primary" onclick="exportLedgerPDF()">📄 Export PDF</button>
+    </div>
+    ${tabs}
+    <div class="ledger-top">
+      <div class="ledger-name">${esc(c.name)}${c.phone?` <span style="font-size:12px;font-weight:400;color:var(--text2)">(${esc(c.phone)})</span>`:''}</div>
+      <div class="ledger-bals">
+        <div class="lb-card ${balClass}">
+          <div class="lb-curr-lbl">${flag(currency)} ${currency} Balance</div>
+          <div class="lb-amt" style="color:${balColor}">${fmt(Math.abs(netVal))} ${currency}</div>
+          <div class="lb-who" style="color:${balColor}">${balLabel}</div>
+        </div>
+      </div>
+    </div>
+
+    ${entries.length===0
+      ?`<div class="empty"><div class="ei">📋</div><p>No ${currency} entries yet</p></div>`
+      :`<div class="tbl-wrap"><table>
+        <thead><tr>
+          <th>Date</th>
+          <th>Description</th>
+          <th>Change</th>
+          <th>Running Balance</th>
+        </tr></thead>
+        <tbody>${rows.map(({e,desc,delta,run:rb})=>{
+          const dColor=delta>0?'var(--green)':'var(--red)';
+          const dSign=delta>0?'+':'';
+          const rbColor=rb>0.001?'var(--green)':rb<-0.001?'var(--red)':'var(--text2)';
+          const whoOwes=rb>0.001?`You owe ${fmt(rb)} ${currency}`:rb<-0.001?`Customer owes ${fmt(Math.abs(rb))} ${currency}`:'Settled';
+          return`<tr>
+            <td style="color:var(--text2);white-space:nowrap">${fmtD(e.date||e.createdAt)}</td>
+            <td style="font-size:13px">${desc}${e.notes?`<div style="font-size:11px;color:var(--text3)">${esc(e.notes)}</div>`:''}</td>
+            <td style="font-weight:600;color:${dColor}">${dSign}${fmt(Math.abs(delta))} ${currency}</td>
+            <td style="font-weight:700;color:${rbColor}">${fmt(Math.abs(rb))} ${currency}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table></div>`
+    }
+  `;
+}
+
+function custActiveCurrencies(custId){
+  const codes=new Set();
+  S.transactions.filter(t=>t.customerId===custId).forEach(t=>{
+    codes.add(t.boughtCurrency);codes.add(t.againstCurrency);
+  });
+  S.payments.filter(p=>p.customerId===custId||p.partyId===custId).forEach(p=>codes.add(p.currency||'PKR'));
+  return[...codes].filter(c=>CURR.some(x=>x.code===c));
+}
+
+/* =====================================================
+   LEDGER PDF
+   ===================================================== */
+function exportLedgerPDF(){
+  const c=S.customers.find(x=>x.id===S.ledgerCustId);
+  const currency=S.ledgerCurrency||'PKR';
+  if(!c)return;
+  const{jsPDF}=window.jspdf;
+  const doc=new jsPDF({unit:'pt', format:'a4'});
+  let y=0; const pw=595.28; const ph=841.89; // A4 points
+  const lm=40; const rm=pw-40; const w=rm-lm;
+
+  // Modern Dark Header Banner
+  doc.setFillColor(21, 24, 32); 
+  doc.rect(0, 0, pw, 100, 'F');
+  
+  doc.setTextColor(245, 166, 35); // Accent Gold/Orange
+  doc.setFontSize(22); doc.setFont('helvetica','bold');
+  doc.text('Amin Ullah & Brothers', lm, 45);
+  
+  doc.setTextColor(150, 160, 180);
+  doc.setFontSize(10); doc.setFont('helvetica','normal');
+  doc.text('Currency Exchange & Money Transfer  •  Ph: 0321-8004987', lm, 65);
+  doc.text(`Generated: ${new Date().toLocaleDateString('en-PK')}`, lm, 82);
+
+  y=130;
+  
+  const net=calcCustNet(c.id);
+  const netVal=net[currency]||0;
+  
+  // Clean Customer Info Card
+  doc.setFillColor(248, 250, 252);
+  doc.setDrawColor(220, 225, 230);
+  doc.roundedRect(lm, y, w, 70, 6, 6, 'FD');
+  
+  doc.setTextColor(100, 110, 120); 
+  doc.setFontSize(9); doc.setFont('helvetica','bold'); 
+  doc.text('CUSTOMER DETAILS', lm+15, y+22);
+  doc.setFontSize(16); doc.setTextColor(20, 25, 30);
+  doc.text(esc(c.name), lm+15, y+44);
+  doc.setFontSize(10); doc.setFont('helvetica','normal'); doc.setTextColor(100, 110, 120);
+  doc.text(`Phone: ${esc(c.phone)||'N/A'}`, lm+15, y+60);
+
+  // Balance Summary
+  doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.text(`TOTAL ${currency} BALANCE`, rm-15, y+22, {align:'right'});
+  
+  doc.setFontSize(18);
+  if(netVal>0.001){
+     doc.setTextColor(46, 204, 113);
+     doc.text(`+ ${fmt(netVal)} ${currency}`, rm-15, y+44, {align:'right'});
+     doc.setFontSize(10); doc.setFont('helvetica','normal'); doc.text('You Owe Customer', rm-15, y+60, {align:'right'});
+  }else if(netVal<-0.001){
+     doc.setTextColor(231, 76, 60);
+     doc.text(`- ${fmt(Math.abs(netVal))} ${currency}`, rm-15, y+44, {align:'right'});
+     doc.setFontSize(10); doc.setFont('helvetica','normal'); doc.text('Customer Owes You', rm-15, y+60, {align:'right'});
+  }else{
+     doc.setTextColor(100, 110, 120);
+     doc.text(`0.00 ${currency}`, rm-15, y+44, {align:'right'});
+     doc.setFontSize(10); doc.setFont('helvetica','normal'); doc.text('Settled', rm-15, y+60, {align:'right'});
+  }
+  
+  y+=100;
+
+  // Table Header
+  doc.setFillColor(241, 245, 249);
+  doc.setDrawColor(226, 232, 240);
+  doc.rect(lm, y, w, 24, 'FD');
+  doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(100, 110, 120);
+  doc.text('DATE', lm+10, y+16);
+  doc.text('DESCRIPTION', lm+90, y+16);
+  doc.text('CHANGE', lm+360, y+16, {align:'right'});
+  doc.text('RUNNING BAL', rm-10, y+16, {align:'right'});
+  
+  y+=24;
+
+  const txns=S.transactions.filter(t=>t.customerId===c.id&&(t.boughtCurrency===currency||t.againstCurrency===currency));
+  const pays=S.payments.filter(p=>(p.customerId===c.id||p.partyId===c.id)&&(p.currency||'PKR')===currency);
+  const entries=[...txns.map(t=>({...t,_k:'txn'})),...pays.map(p=>({...p,_k:'pay'}))].sort((a,b)=>(a.date||'')>(b.date||'')?1:-1);
+
+  let run=0;
+  entries.forEach((e, i)=>{
+    if(y>ph-60){
+      doc.addPage(); y=40;
+      doc.setFillColor(241, 245, 249); doc.setDrawColor(226, 232, 240); doc.rect(lm, y, w, 24, 'FD');
+      doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.setTextColor(100, 110, 120);
+      doc.text('DATE', lm+10, y+16); doc.text('DESCRIPTION', lm+90, y+16);
+      doc.text('CHANGE', lm+360, y+16, {align:'right'}); doc.text('RUNNING BAL', rm-10, y+16, {align:'right'});
+      y+=24;
+    }
+    
+    let desc='',delta=0;
+    if(e._k==='txn'){
+      desc=txnDesc(e);
+      delta=e.againstCurrency===currency?+(parseFloat(e.againstAmt)||0):-(parseFloat(e.boughtAmt)||0);
+    }else{
+      const amt=parseFloat(e.amount)||0;
+      if(e.customerId===c.id){
+        desc=e.partyId?(e.direction==='paid'?`We paid (from Party)`:`Received (to Party)`):(e.direction==='paid'?`We paid – ${e.method||'Cash'}`:`Received – ${e.method||'Cash'}`);
+        delta=e.direction==='received'?+amt:-amt;
+      } else if(e.partyId===c.id){
+        const fromCust=S.customers.find(cx=>cx.id===e.customerId)?.name||'Unknown';
+        desc=e.direction==='received'?`Debited via ${fromCust}`:`Deposited via ${fromCust}`;
+        delta=e.direction==='received'?-amt:+amt;
+      }
+    }
+    run+=delta;
+    
+    if(e.notes) desc += ` – ${e.notes}`;
+    
+    if(i%2===0) { doc.setFillColor(255, 255, 255); } else { doc.setFillColor(248, 250, 252); }
+    doc.rect(lm, y, w, 26, 'F');
+    
+    doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(71, 85, 105);
+    doc.text(fmtD(e.date||e.createdAt), lm+10, y+17);
+    
+    // Auto-truncate with ellipsis if it exceeds 58 chars
+    doc.text(desc.length > 58 ? desc.substring(0, 56) + '...' : desc, lm+90, y+17);
+    
+    const changeStr=(delta>=0?'+':'')+fmt(delta);
+    if(delta>0) doc.setTextColor(34, 197, 94); // Modern Green
+    else if(delta<0) doc.setTextColor(239, 68, 68); // Modern Red
+    else doc.setTextColor(100, 110, 120);
+    
+    doc.setFont('helvetica','bold');
+    doc.text(changeStr, lm+360, y+17, {align:'right'});
+    
+    // Running balance (negative indicates they owe us)
+    const runStr=(run>0.001?'+':'') + fmt(run);
+    if(run>0.001) doc.setTextColor(34, 197, 94);
+    else if(run<-0.001) doc.setTextColor(239, 68, 68);
+    else doc.setTextColor(100, 110, 120);
+    doc.text(runStr, rm-10, y+17, {align:'right'});
+    
+    doc.setDrawColor(241, 245, 249); doc.line(lm, y+26, rm, y+26);
+    y+=26;
+  });
+
+  // Footer
+  const pages = doc.internal.getNumberOfPages();
+  for(let i=1; i<=pages; i++) {
+    doc.setPage(i);
+    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(148, 163, 184);
+    doc.text(`Page ${i} of ${pages}`, rm, ph-25, {align:'right'});
+    doc.text('Amin Ullah & Brothers – Automated ERP Export', lm, ph-25);
+  }
+
+  doc.save(`Ledger_${c.name.replace(/\s+/g,'_').replace(/[^a-zA-Z0-9_\-]/g,'')}_${currency}.pdf`);
+  toast('PDF exported ✓','success');
+}
+
+/* =====================================================
+   INVENTORY
+   ===================================================== */
+function renderInv(){
+  const inv=calcInv(S.transactions);
+  document.getElementById('content').innerHTML=`
+    <div class="grid g5 sg">
+      ${CURR.map(c=>`
+        <div class="stat-card">
+          <div style="margin-bottom:10px">${flag(c.code)}</div>
+          <div class="stat-val" style="color:${inv[c.code]<-0.001?'var(--red)':'var(--green)'}">${fmt(inv[c.code])}</div>
+          <div class="stat-lbl">${c.code} – ${c.name}</div>
+          ${inv[c.code]<-0.001?`<div style="font-size:11px;color:var(--red);margin-top:5px">⚠️ Negative</div>`:''}
+        </div>`).join('')}
+    </div>
+    <div class="grid g2">
+      <div class="card">
+        <div class="card-hd"><div class="card-title">${t('bal_chart')}</div></div>
+        <div class="chart-wrap"><canvas id="inv-chart"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-hd"><div class="card-title">${t('flow_breakdown')}</div></div>
+        <table>
+          <thead><tr><th>Currency</th><th>Total In</th><th>Total Out</th><th>Net</th></tr></thead>
+          <tbody>${CURR.map(c=>{
+            const ins=S.transactions.reduce((s,t)=>t.boughtCurrency===c.code?s+(parseFloat(t.boughtAmt)||0):s,0);
+            const outs=S.transactions.reduce((s,t)=>t.againstCurrency===c.code?s+(parseFloat(t.againstAmt)||0):s,0);
+            const net=ins-outs;
+            return`<tr>
+              <td><span style="display:inline-flex;align-items:center;gap:6px">${flag(c.code)} <strong>${c.code}</strong></span></td>
+              <td class="fc-green">+${fmt(ins)}</td>
+              <td class="fc-red">−${fmt(outs)}</td>
+              <td class="fw7" style="color:${net<-0.001?'var(--red)':net>0.001?'var(--green)':'var(--text2)'}">${fmt(net)}</td>
+            </tr>`;
+          }).join('')}</tbody>
+        </table>
+      </div>
+    </div>
+  `;
+  setTimeout(()=>{
+    const ctx=document.getElementById('inv-chart');if(!ctx)return;
+    new Chart(ctx,{type:'bar',
+      data:{labels:CURR.map(c=>c.code),datasets:[{label:'Balance',data:CURR.map(c=>inv[c.code]),backgroundColor:CURR.map(c=>c.color+'bb'),borderRadius:6}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{
+        y:{grid:{color:'rgba(128,128,128,.1)'},ticks:{color:'#7c8699'}},
+        x:{grid:{display:false},ticks:{color:'#7c8699'}}
+      }}
+    });
+  },80);
+}
+
+/* =====================================================
+   P&L
+   ===================================================== */
+function ymd(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function periodBounds(type){
+  const now=new Date();
+  if(type==='month')     return[ymd(new Date(now.getFullYear(),now.getMonth(),1)),   ymd(new Date(now.getFullYear(),now.getMonth()+1,0))];
+  if(type==='lastmonth') return[ymd(new Date(now.getFullYear(),now.getMonth()-1,1)), ymd(new Date(now.getFullYear(),now.getMonth(),0))];
+  if(type==='year')      return[now.getFullYear()+'-01-01',                          now.getFullYear()+'-12-31'];
+  return['',''];
+}
+function monthInRange(ym){
+  const r=S.pnlRange||{type:'all'};
+  if(r.type==='all')return true;
+  const [f0,t0]=r.type==='custom'?[r.from||'',r.to||'']:periodBounds(r.type);
+  const first=ym+'-01';
+  return(!f0||first>=f0)&&(!t0||first<=t0);
+}
+function setPnlRange(type){
+  if(type==='custom'){
+    if(S.pnlRange.type!=='custom'){const[b1,b2]=periodBounds('month');S.pnlRange={type:'custom',from:b1,to:b2};}
+  }else{
+    S.pnlRange={type,from:'',to:''};
+  }
+  renderPnL();
+}
+function applyPnlCustom(){
+  S.pnlRange={type:'custom',from:document.getElementById('pnl-from')?.value||'',to:document.getElementById('pnl-to')?.value||''};
+  renderPnL();
+}
+
+/* ---- Close-month (rate entry) modal ---- */
+function openCloseMonth(ym){
+  S.closeMonth=ym;
+  const existing=getSnapshot(ym);
+  const rates=existing?existing.rates:avgRatesForMonth(ym);
+  const rows=monthAccountRows(ym);
+  const curs=[...new Set(rows.map(r=>r.currency))].sort((a,b)=>(a==='PKR'?-1:b==='PKR'?1:a<b?-1:1));
+  const prev=existing?existing.prevBalance:prevSnapshotBalance(ym);
+  document.getElementById('close-month-title').textContent='Close Month – '+ym;
+  document.getElementById('snap-prev').value=prev?+Number(prev).toFixed(2):0;
+  document.getElementById('close-month-body').innerHTML=curs.length===0
+    ?`<div class="empty" style="padding:14px"><div class="ei">💱</div><p>No customer balances this month.</p></div>`
+    :curs.map(cu=>{
+      const list=rows.filter(r=>r.currency===cu).sort((a,b)=>a.amount-b.amount);
+      const dr=list.filter(r=>r.amount<0).reduce((s,r)=>s-r.amount,0);
+      const cr=list.filter(r=>r.amount>0).reduce((s,r)=>s+r.amount,0);
+      return`<div style="border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px;margin-bottom:10px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:8px">${flag(cu)} <strong>${cu}</strong>
+            <span style="font-size:11px;color:var(--text3)">Debit ${fmt(dr)} · Credit ${fmt(cr)}</span></div>
+          ${cu==='PKR'?`<span style="font-size:11px;color:var(--text3)">rate = 1</span>`
+            :`<div style="display:flex;align-items:center;gap:6px"><span class="fl" style="margin:0">PKR rate</span>
+              <input type="number" class="fc" data-rate-ccy="${cu}" step="any" style="width:110px" value="${rates[cu]?+rates[cu].toFixed(4):''}" placeholder="PKR per ${cu}"/></div>`}
+        </div>
+        <div class="tbl-wrap"><table>
+          <tbody>${list.map(r=>`<tr>
+            <td>${esc(r.name)}</td>
+            <td style="text-align:right;white-space:nowrap" class="${r.amount>0?'fc-green':'fc-red'}">${fmt(Math.abs(r.amount))} ${cu}</td>
+            <td style="width:120px">${r.amount>0?'<span class="badge b-blue">Credit</span>':'<span class="badge b-red">Debit</span>'}</td>
+          </tr>`).join('')}</tbody>
+        </table></div>
+      </div>`;
+    }).join('');
+  openModal('mod-close-month');
+}
+async function saveMonthSnapshot(){
+  const ym=S.closeMonth;if(!ym)return;
+  const rates={PKR:1};
+  document.querySelectorAll('[data-rate-ccy]').forEach(inp=>{
+    const v=parseFloat(inp.value);rates[inp.dataset.rateCcy]=isNaN(v)?0:v;
+  });
+  const prev=parseFloat(document.getElementById('snap-prev')?.value)||0;
+  const calc=balancesInPkr(lastDayOfMonth(ym),rates);
+  const data={month:ym,rates,debitPkr:calc.debit,creditPkr:calc.credit,balancePkr:calc.balance,prevBalance:prev,perCur:calc.perCur,accounts:snapshotAccounts(ym,rates),closedAt:Date.now()};
+  const existing=getSnapshot(ym);
+  if(existing)await DB.update('snapshots',existing.id,data);else await DB.add('snapshots',data);
+  await loadAll();
+  closeModal('mod-close-month');
+  toast(existing?'Month updated ✓':'Month closed ✓','success');
+  renderPnL();
+}
+// Read-only report of a closed month
+function viewMonthSnapshot(ym){
+  const s=getSnapshot(ym);if(!s)return;
+  const accounts=s.accounts||snapshotAccounts(ym,s.rates||{PKR:1});
+  const deb=accounts.filter(a=>a.side==='debit').sort((a,b)=>a.name.toLowerCase()<b.name.toLowerCase()?-1:1);
+  const cre=accounts.filter(a=>a.side==='credit').sort((a,b)=>a.name.toLowerCase()<b.name.toLowerCase()?-1:1);
+  const rateList=Object.entries(s.rates||{}).filter(([c])=>c!=='PKR');
+  const table=(list,cls)=>list.length===0
+    ?`<div class="empty" style="padding:12px"><p>No accounts</p></div>`
+    :`<div class="tbl-wrap"><table>
+      <thead><tr><th style="padding-left:12px">Customer</th><th>Currency</th><th style="text-align:right">Amount</th><th style="text-align:right">PKR</th></tr></thead>
+      <tbody>${list.map(a=>`<tr>
+        <td style="padding-left:12px">${esc(a.name)}</td>
+        <td class="tc" style="white-space:nowrap">${flag(a.currency)} ${a.currency}</td>
+        <td style="text-align:right;white-space:nowrap">${fmt(Math.abs(a.amount))} ${a.currency}</td>
+        <td class="fw7 ${cls}" style="text-align:right;white-space:nowrap">₨ ${fmt(Math.abs(a.pkr))}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>`;
+  document.getElementById('month-report-title').textContent='Month Report – '+ym;
+  document.getElementById('month-report-body').innerHTML=`
+    <div style="margin-bottom:12px"><span class="badge b-gold">Fixed rates: ${rateList.length?rateList.map(([c,v])=>`${c} ${fmt(v,4)}`).join('  ·  '):'PKR only'}</span></div>
+    <div class="grid g2" style="gap:10px;margin-bottom:12px">
+      <div class="card" style="padding:12px"><div class="stat-lbl">Total Debit (they owe you)</div><div class="stat-val fc-red">₨ ${fmt(s.debitPkr)}</div></div>
+      <div class="card" style="padding:12px"><div class="stat-lbl">Total Credit (you owe them)</div><div class="stat-val" style="color:var(--blue)">₨ ${fmt(s.creditPkr)}</div></div>
+    </div>
+    <div class="card" style="padding:12px;margin-bottom:12px"><div class="stat-lbl">Balance (Debit − Credit)</div><div class="stat-val ${s.balancePkr>=0?'fc-green':'fc-red'}">₨ ${fmt(s.balancePkr)}</div></div>
+    <div class="card" style="margin-bottom:12px">
+      <div class="card-hd"><div class="card-title">Debit Accounts — customers owe you</div><div class="fw7 fc-red">₨ ${fmt(s.debitPkr)}</div></div>
+      ${table(deb,'fc-red')}
+    </div>
+    <div class="card">
+      <div class="card-hd"><div class="card-title">Credit Accounts — you owe customers</div><div class="fw7" style="color:var(--blue)">₨ ${fmt(s.creditPkr)}</div></div>
+      ${table(cre,'')}
+    </div>
+  `;
+  openModal('mod-month-report');
+}
+async function deleteSnapshot(id){
+  const ok=await confirm2('Reopen Month','Delete this month\'s snapshot? You can close it again with new rates.');if(!ok)return;
+  await DB.delete('snapshots',id);
+  await loadAll();
+  renderPnL();
+}
+function renderPnL(){
+  const months=monthsWithData().slice().reverse();   // newest first
+  const shown=months.filter(monthInRange);
+  const last=latestSnapshot();
+  const pnls=snapshotPnls();
+  const lastPnl=last?(pnls[last.month]||0):0;
+  const live=balancesInPkr(ymd(new Date()),currentRates());
+  const livePnl=live.balance-(last?last.balancePkr:0);
+  const rt=(S.pnlRange||{}).type||'all';
+  const chip=(v,lbl)=>`<button class="chip ${rt===v?'active':''}" onclick="setPnlRange('${v}')">${lbl}</button>`;
+  const rows=shown.map(ym=>{
+    const s=getSnapshot(ym);
+    if(!s)return`<tr>
+      <td style="padding-left:14px;font-weight:600;white-space:nowrap">${ym}</td>
+      <td class="tc">—</td><td class="tc">—</td><td class="tc">—</td><td class="tc">—</td>
+      <td><span class="badge b-gray">Not closed</span></td>
+      <td><button class="btn btn-primary btn-sm" onclick="openCloseMonth('${ym}')">Close Month</button></td>
+    </tr>`;
+    const pnl=pnls[ym]||0;
+    return`<tr>
+      <td style="padding-left:14px;font-weight:600;white-space:nowrap">${ym}</td>
+      <td class="tc">₨ ${fmt(s.debitPkr)}</td>
+      <td class="tc">₨ ${fmt(s.creditPkr)}</td>
+      <td class="fw7">₨ ${fmt(s.balancePkr)}</td>
+      <td class="fw7 ${pnl>=0?'fc-green':'fc-red'}">${pnl>=0?'+':''}₨ ${fmt(pnl)}</td>
+      <td><span class="badge b-green">✓ Closed</span></td>
+      <td><div class="acts">
+        <button class="btn btn-ghost btn-sm" onclick="viewMonthSnapshot('${ym}')">👁️ View</button>
+        <button class="btn btn-ghost btn-sm" onclick="openCloseMonth('${ym}')">✏️ Rates</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteSnapshot('${s.id}')">↩︎</button>
+      </div></td>
+    </tr>`;
+  }).join('');
+  document.getElementById('content').innerHTML=`
+    <div class="fbet mb3">
+      <div class="chips">
+        ${chip('all','All time')}${chip('month','This Month')}${chip('lastmonth','Last Month')}${chip('year','This Year')}
+      </div>
+      <div class="chips">
+        ${rt==='custom'?`
+          <input type="date" class="fc" id="pnl-from" value="${esc(S.pnlRange.from||'')}" style="width:auto" onchange="applyPnlCustom()"/>
+          <span class="tc">→</span>
+          <input type="date" class="fc" id="pnl-to" value="${esc(S.pnlRange.to||'')}" style="width:auto" onchange="applyPnlCustom()"/>
+        `:''}
+        <button class="btn btn-ghost btn-sm" onclick="setPnlRange('custom')">📅 ${rt==='custom'?'Custom range':'Date Filter'}</button>
+      </div>
+    </div>
+
+    <div class="grid g3 sg">
+      <div class="stat-card">
+        <div class="stat-icon ${lastPnl>=0?'si-gold':'si-red'}">📈</div>
+        <div class="stat-val ${lastPnl>=0?'fc-gold':'fc-red'}">₨ ${fmt(lastPnl)}</div>
+        <div class="stat-lbl">Last Month Profit</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:6px">${last?last.month:'No month closed yet'}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon ${livePnl>=0?'si-green':'si-red'}">📊</div>
+        <div class="stat-val ${livePnl>=0?'fc-green':'fc-red'}">₨ ${fmt(livePnl)}</div>
+        <div class="stat-lbl">This Month So Far</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:6px">${currentMonth()} · live estimate</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon si-blue">⚖️</div>
+        <div class="stat-val">₨ ${fmt(live.balance)}</div>
+        <div class="stat-lbl">Net Balance (Debit − Credit)</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:6px">Dr ₨ ${fmt(live.debit)} · Cr ₨ ${fmt(live.credit)}</div>
+      </div>
+    </div>
+
+    <div class="card sg">
+      <div class="card-hd">
+        <div class="card-title">Monthly Profit &amp; Loss</div>
+        <button class="btn btn-primary btn-sm" onclick="openCloseMonth('${currentMonth()}')">+ Close ${currentMonth()}</button>
+      </div>
+      <div class="tbl-wrap"><table>
+        <thead><tr>
+          <th style="padding-left:14px">Month</th>
+          <th>Total Debit (PKR)</th>
+          <th>Total Credit (PKR)</th>
+          <th>Balance</th>
+          <th>PnL</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr></thead>
+        <tbody>${rows||`<tr><td colspan="7"><div class="empty"><div class="ei">📈</div><p>No months to show.</p></div></td></tr>`}</tbody>
+      </table></div>
+    </div>
+  `;
+}
+
+/* =====================================================
+   LOGS
+   ===================================================== */
+function renderLogs(){
+  document.getElementById('content').innerHTML=`
+    <div class="card">
+      ${S.logs.length===0?`<div class="empty"><div class="ei">📋</div><p>No edit history yet</p></div>`:`
+      <div class="tbl-wrap"><table>
+        <thead><tr><th style="padding-left:14px">Time</th><th>Collection</th><th>Change</th></tr></thead>
+        <tbody>${S.logs.map(l=>`<tr>
+          <td style="padding-left:14px;color:var(--text2)">${fmtD(l.createdAt)}</td>
+          <td><span class="badge b-blue">${l.collection||'—'}</span></td>
+          <td style="font-size:12px;color:var(--text2)">${summarize(l.oldData,l.newData)}</td>
+        </tr>`).join('')}</tbody>
+      </table></div>`}
+    </div>
+  `;
+}
+function summarize(o,n){
+  try{
+    const od=JSON.parse(o||'{}'),nd=JSON.parse(n||'{}');
+    const ch=[];Object.keys(nd).forEach(k=>{if(JSON.stringify(od[k])!==JSON.stringify(nd[k]))ch.push(`${k}: ${od[k]??'∅'} → ${nd[k]}`);});
+    return ch.slice(0,4).join(' | ')||'Updated';
+  }catch{return'Updated';}
+}
+async function logEdit(col,id,old,nw){
+  await DB.add('logs',{collection:col,docId:id,oldData:JSON.stringify(old),newData:JSON.stringify(nw)});
+}
+
+/* =====================================================
+   BACKUP
+   ===================================================== */
+function renderBackup(){
+  document.getElementById('content').innerHTML=`
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-hd"><div class="card-title" style="font-size:16px">☁️ Sync from Cloud</div></div>
+      <p style="color:var(--text2);font-size:13px;margin-bottom:14px">Pull all data from Firestore and overwrite local storage. Pending changes will be lost.</p>
+      <button class="btn btn-ghost" onclick="syncFromCloud()" style="width:100%">🔄 Sync from Cloud</button>
+    </div>
+    <div class="grid g2">
+      <div class="card">
+        <div class="card-hd"><div class="card-title" style="font-size:16px">📤 ${t('export_backup')}</div></div>
+        <p style="color:var(--text2);font-size:13px;margin-bottom:14px">Download all data as a JSON file.</p>
+        <div style="background:var(--bg3);border-radius:var(--rs);padding:13px;margin-bottom:14px;font-size:13px;color:var(--text2);line-height:2">
+          👥 Customers: <strong style="color:var(--text)">${S.customers.length}</strong><br>
+          💱 Transactions: <strong style="color:var(--text)">${S.transactions.length}</strong><br>
+          💳 Payments: <strong style="color:var(--text)">${S.payments.length}</strong><br>
+          📋 Logs: <strong style="color:var(--text)">${S.logs.length}</strong><br>
+          🗓️ Month snapshots: <strong style="color:var(--text)">${S.snapshots.length}</strong>
+        </div>
+        <button class="btn btn-primary" onclick="exportBackup()" style="width:100%">📤 ${t('dl_json')}</button>
+      </div>
+      <div class="card">
+        <div class="card-hd"><div class="card-title" style="font-size:16px">📥 ${t('import_backup')}</div></div>
+        <p style="color:var(--red);font-size:13px;margin-bottom:14px">⚠️ Importing MERGES data. Export first.</p>
+        <div class="fg mb4"><label class="fl">Select JSON File</label><input type="file" accept=".json" class="fc" id="imp-file"/></div>
+        <button class="btn btn-primary" onclick="importBackup()" style="width:100%">📥 ${t('import_merge')}</button>
+      </div>
+    </div>
+  `;
+}
+function exportBackup(){
+  const payload={exportedAt:new Date().toISOString(),v:'4.0'};
+  COLS.forEach(c=>payload[c]=S[c]||[]);
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(payload,null,2)],{type:'application/json'}));
+  a.download=`ERP_Backup_${today()}.json`;a.click();
+  toast('Backup downloaded ✓','success');
+}
+async function importBackup(){
+  const f=document.getElementById('imp-file')?.files[0];
+  if(!f){toast('Select a file','error');return;}
+  const ok=await confirm2('Replace Data','This will REPLACE all local data and queue it for Firebase sync. Proceed?');if(!ok)return;
+  try{
+    const d=JSON.parse(await f.text());let n=0;
+    COLS.forEach(c=>LS.set(c,[]));
+    PQ.set([]);
+    for(const col of COLS){
+      if(Array.isArray(d[col])){
+        LS.set(col,d[col]);
+        d[col].forEach(item=>PQ.add({op:'set',col,id:item.id,data:item}));
+        n+=d[col].length;
+      }
+    }
+    schedSync();
+    toast(`Replaced all data with ${n} records (queued for sync)`,'success');
+    await navigate(S.page);
+  }catch(e){toast('Failed to parse file','error');}
+}
+async function syncFromCloud(){
+  if(!fbReady||!isOnline){toast('Cannot sync – check connection','error');return;}
+  const ok=await confirm2('Sync from Cloud','This will overwrite ALL local data with Firestore data. Pending changes will be lost. Continue?');
+  if(!ok)return;
+  toast('Syncing from cloud…','info');
+  COLS.forEach(c=>LS.set(c,[]));
+  PQ.set([]);
+  await pullFirestore(true);
+  await loadAll();
+  toast('Synced from cloud ✓','success');
+  await navigate(S.page);
+}
+/* =====================================================
+   IN-APP UPDATES
+   -----------------------------------------------------
+   Two update channels:
+
+   1) WEB / OTA  — app.html is downloaded in the background,
+      stored locally, and booted on the NEXT launch. No APK
+      reinstall. Used for JS/HTML/CSS changes.
+
+   2) APK        — only when nativeVersionCode in version.json
+      is bumped (new native plugin, permission, icon, etc.).
+      The APK is downloaded and the Android installer opens.
+
+   GitHub Actions publishes a release named "latest" containing
+   update.json, app.html and app.apk.
+   ===================================================== */
+const UPDATE_CFG = {
+  // CI stamps this with the repository automatically (see scripts/build-web.mjs).
+  // Local builds use the placeholder; you can also override it at runtime with
+  // localStorage.setItem('erp_update_repo','owner/repo').
+  repo: '__UPDATE_REPO__',
+  manifestAsset: 'update.json',
+  webAsset: 'app.html',
+  apkAsset: 'app.apk',
+  autoCheck: true,
+  checkEveryMs: 6 * 60 * 60 * 1000
+};
+
+const OTA_KEY = 'erp_ota_bundle_v1';
+
+function appMeta(name){
+  const el=document.querySelector('meta[name="'+name+'"]');
+  return el?el.content:'';
+}
+function isNativeApp(){
+  try{return !!(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform());}catch(e){return false;}
+}
+function nativePlugin(name){
+  try{return window.Capacitor&&window.Capacitor.Plugins?window.Capacitor.Plugins[name]:null;}catch(e){return null;}
+}
+
+let _nativeInfo=null;
+async function getNativeInfo(){
+  if(_nativeInfo)return _nativeInfo;
+  let version=appMeta('app-version')||'0.0.0';
+  let build=Number(appMeta('app-native-code'))||0;
+  const webBuild=Number(appMeta('app-build'))||0;
+  const webVersion=version;
+  const App=nativePlugin('App');
+  if(isNativeApp()&&App&&App.getInfo){
+    try{
+      const i=await App.getInfo();
+      if(i){
+        if(i.version)version=i.version;
+        if(i.build!=null&&!isNaN(Number(i.build)))build=Number(i.build);
+      }
+    }catch(e){}
+  }
+  return (_nativeInfo={version,build,webVersion,webBuild});
+}
+
+async function httpGetText(url){
+  const Cap=window.Capacitor;
+  if(isNativeApp()&&Cap&&Cap.Plugins&&Cap.Plugins.CapacitorHttp){
+    const res=await Cap.Plugins.CapacitorHttp.get({
+      url,
+      responseType:'text',
+      connectTimeout:20000,
+      readTimeout:30000,
+      headers:{
+        'Accept':'application/vnd.github+json',
+        'X-GitHub-Api-Version':'2022-11-28',
+        'User-Agent':'AminERP-Android'
+      }
+    });
+    if(res.status>=400)throw new Error('HTTP '+res.status);
+    return typeof res.data==='string'?res.data:JSON.stringify(res.data);
+  }
+  const r=await fetch(url,{cache:'no-store',headers:{'Accept':'application/vnd.github+json'}});
+  if(!r.ok)throw new Error('HTTP '+r.status);
+  return await r.text();
+}
+
+function withCacheBust(url){
+  return url+(url.indexOf('?')>=0?'&':'?')+'_='+Date.now();
+}
+function getStoredBundle(){
+  try{
+    const raw=localStorage.getItem(OTA_KEY);
+    if(!raw)return null;
+    const o=JSON.parse(raw);
+    return (o&&o.html&&o.build!=null)?o:null;
+  }catch(e){return null;}
+}
+function rmStoredBundle(){
+  try{localStorage.removeItem(OTA_KEY);localStorage.removeItem('erp_ota_pending');localStorage.removeItem('erp_ota_fails');}catch(e){}
+}
+function fmtSize(n){
+  n=Number(n)||0;
+  if(n>=1048576)return (n/1048576).toFixed(1)+' MB';
+  if(n>=1024)return Math.round(n/1024)+' KB';
+  return n+' B';
+}
+async function sha256Hex(text){
+  try{
+    if(!(window.crypto&&window.crypto.subtle))return '';
+    const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text));
+    return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
+  }catch(e){return '';}
+}
+
+const Updater={
+  repo:(function(){try{return localStorage.getItem('erp_update_repo')||UPDATE_CFG.repo;}catch(e){return UPDATE_CFG.repo;}})(),
+  state:{
+    checking:false,checked:false,error:'',manifest:null,
+    web:null,apk:null,apkPath:'',downloading:false,progress:0,
+    lastCheck:Number(localStorage.getItem('erp_upd_last')||0)||0
+  },
+  _bannerHandler:null,
+
+  configured(){
+    return !!this.repo&&!/^OWNER\//.test(this.repo);
+  },
+
+  /* Runs from init(): clears the "boot in progress" marker after a
+     successful start so the boot loader knows the bundle is healthy. */
+  confirmBoot(){
+    try{
+      const pending=localStorage.getItem('erp_ota_pending');
+      if(!pending)return;
+      const pBuild=String(pending).split(':')[0];
+      const cur=String(appMeta('app-build'));
+      if(pBuild===cur)localStorage.setItem('erp_ota_confirmed',pBuild);
+      localStorage.removeItem('erp_ota_pending');
+      localStorage.removeItem('erp_ota_fails');
+    }catch(e){}
+  },
+
+  async check(manual){
+    if(this.state.checking)return;
+    if(!this.configured()){
+      this.state.error='Update channel not configured';
+      this.state.checked=true;
+      if(manual)toast('Set your GitHub repo in UPDATE_CFG.repo','error');
+      this.refreshPage();
+      return;
+    }
+    this.state.checking=true;this.state.error='';
+    if(manual)this.refreshPage();
+    try{
+      const base='https://github.com/'+this.repo+'/releases/latest/download/';
+      const manifest=JSON.parse(await httpGetText(withCacheBust(base+UPDATE_CFG.manifestAsset)));
+      this.state.manifest=manifest;
+      this.state.lastCheck=Date.now();
+      try{localStorage.setItem('erp_upd_last',String(this.state.lastCheck));}catch(e){}
+
+      const info=await getNativeInfo();
+      const remoteNative=Number(manifest.nativeVersionCode)||0;
+      const minNative=Number(manifest.minNativeVersionCode)||0;
+      const remoteWeb=Number(manifest.webBuild)||0;
+
+      this.state.apk=null;
+      this.state.web=null;
+      this.state.apkPath='';
+
+      if(remoteNative>info.build||minNative>info.build){
+        const apkUrl=withCacheBust(base+UPDATE_CFG.apkAsset);
+        this.state.apk={
+          versionCode:remoteNative,
+          version:String(manifest.version||''),
+          notes:String(manifest.notes||''),
+          size:(manifest.apk&&manifest.apk.size)||0,
+          sha256:(manifest.apk&&manifest.apk.sha256)||'',
+          url:apkUrl||''
+        };
+        if(apkUrl){
+          this.showBanner('📦','New app version available',
+            'Version '+this.state.apk.version+' needs a full APK install',
+            'Download',()=>this.downloadApk());
+        }
+      }else if(remoteWeb>info.webBuild){
+        const badBuild=Number(String(localStorage.getItem('erp_ota_bad')||'').split(':')[0])||0;
+        if(badBuild&&badBuild===remoteWeb){
+          this.state.error='The last downloaded update failed to start — waiting for a newer release';
+          if(manual)toast('That update failed to start; waiting for a newer build','error');
+        }else{
+          const webUrl=base+UPDATE_CFG.webAsset;
+          if(webUrl){
+            const html=await httpGetText(withCacheBust(webUrl));
+            if(!html||html.indexOf('<html')<0)throw new Error('Invalid web bundle');
+            if(manifest.web&&manifest.web.sha256){
+              const actual=await sha256Hex(html);
+              if(actual&&actual.toLowerCase()!==String(manifest.web.sha256).toLowerCase()){
+                throw new Error('Web update checksum mismatch');
+              }
+            }
+            try{
+              localStorage.setItem(OTA_KEY,JSON.stringify({
+                build:remoteWeb,
+                version:String(manifest.version||''),
+                notes:String(manifest.notes||''),
+                at:Date.now(),
+                html
+              }));
+              localStorage.removeItem('erp_ota_bad');
+              this.state.web={build:remoteWeb,version:String(manifest.version||''),notes:String(manifest.notes||''),size:html.length};
+              this.showBanner('✨','Update downloaded',
+                'Version '+this.state.web.version+' will start automatically next time',
+                'Restart',()=>this.applyWeb());
+              if(manual)toast('Update downloaded — restart to apply','success');
+            }catch(e){
+              this.state.error='Not enough storage for the update';
+              if(manual)toast('Not enough storage for the update','error');
+            }
+          }
+        }
+      }else{
+        if(manual)toast('You are on the latest version','success');
+      }
+
+      // Drop a downloaded bundle that is not newer than what is running.
+      const stored=getStoredBundle();
+      if(stored&&Number(stored.build)<=info.webBuild&&Number(stored.build)!==remoteWeb)rmStoredBundle();
+    }catch(e){
+      this.state.error=String(e&&e.message||e);
+      if(manual)toast('Update check failed: '+this.state.error,'error');
+    }finally{
+      this.state.checking=false;this.state.checked=true;
+      this.refreshPage();
+    }
+  },
+
+  stored(){
+    const b=getStoredBundle();
+    if(!b)return null;
+    return {build:b.build,version:b.version,notes:b.notes,at:b.at,size:(b.html||'').length};
+  },
+
+  pendingWeb(){
+    const b=getStoredBundle();
+    if(!b)return null;
+    const cur=Number(appMeta('app-build'))||0;
+    return Number(b.build)>cur?b:null;
+  },
+
+  applyWeb(){
+    if(!this.pendingWeb()){toast('No downloaded update to apply','info');return;}
+    toast('Restarting…','info');
+    setTimeout(()=>{location.reload();},300);
+  },
+
+  async downloadApk(){
+    const apk=this.state.apk;
+    if(!apk||!apk.url){toast('No APK download available yet','error');return;}
+    if(!isNativeApp()){
+      window.open(apk.url,'_blank');
+      toast('Download started in browser','info');
+      return;
+    }
+    const plugin=nativePlugin('NativeUpdater');
+    if(!plugin){
+      window.open(apk.url,'_blank');
+      toast('Native updater unavailable — opening browser','info');
+      return;
+    }
+    this.state.downloading=true;this.state.progress=0;
+    this.showBanner('📥','Downloading update…','Starting download','',null,true);
+    this.refreshPage();
+    try{
+      if(!this._progressBound){
+        this._progressBound=true;
+        plugin.addListener('downloadProgress',d=>{
+          const pct=Math.max(0,Math.min(100,Math.round(Number(d&&d.percent)||0)));
+          this.state.progress=pct;
+          this.bannerProgress(pct);
+          const sub=document.getElementById('ub-sub');
+          if(sub)sub.textContent='Downloading… '+pct+'%';
+          if(S.page==='updates'&&document.getElementById('upd-prog-page')){
+            document.getElementById('upd-prog-page').style.width=pct+'%';
+          }
+        });
+      }
+      const fileName='AminBrothers-'+apk.version+'-'+apk.versionCode+'.apk';
+      const res=await plugin.downloadAndInstall({url:apk.url,fileName,sha256:apk.sha256||''});
+      if(res&&res.needsPermission){
+        this.state.apkPath=res.path||'';
+        this.showBanner('🔓','Allow app installs',
+          'Enable "Install unknown apps" for this app, then tap Install',
+          'Install',()=>this.installApk());
+        toast('Enable install permission, then tap Install','info');
+      }else{
+        this.hideBanner();
+        toast('Installer opened — follow the prompts','success');
+      }
+    }catch(e){
+      this.state.error=String(e&&e.message||e);
+      this.showBanner('⚠️','Update failed',this.state.error,'Retry',()=>this.downloadApk());
+      toast('Download failed: '+this.state.error,'error');
+    }finally{
+      this.state.downloading=false;
+      this.refreshPage();
+    }
+  },
+
+  async installApk(){
+    const plugin=nativePlugin('NativeUpdater');
+    if(!plugin||!this.state.apkPath){
+      this.downloadApk();return;
+    }
+    try{
+      const res=await plugin.install({path:this.state.apkPath});
+      if(res&&res.needsPermission){
+        toast('Enable "Install unknown apps" for this app','info');
+      }else{
+        this.hideBanner();
+      }
+    }catch(e){
+      toast('Could not open installer: '+String(e&&e.message||e),'error');
+    }
+  },
+
+  showBanner(icon,title,sub,action,handler,progress){
+    const bar=document.getElementById('upd-bar');
+    if(!bar)return;
+    const ico=bar.querySelector('.ub-ico');
+    if(ico)ico.textContent=icon||'⬆️';
+    const ttl=document.getElementById('ub-title');if(ttl)ttl.textContent=title||'';
+    const s=document.getElementById('ub-sub');if(s)s.textContent=sub||'';
+    const btn=document.getElementById('ub-action');
+    if(btn){btn.textContent=action||'';btn.style.display=action?'':'none';}
+    const pw=document.getElementById('ub-prog-wrap');
+    if(pw)pw.style.display=progress?'block':'none';
+    this.bannerProgress(0);
+    this._bannerHandler=handler||null;
+    bar.classList.add('show');
+  },
+  hideBanner(){
+    const bar=document.getElementById('upd-bar');
+    if(bar)bar.classList.remove('show');
+  },
+  bannerProgress(pct){
+    const p=document.getElementById('ub-prog');
+    if(p)p.style.width=Math.max(0,Math.min(100,Number(pct)||0))+'%';
+  },
+  runBanner(){
+    if(this._bannerHandler)this._bannerHandler();
+  },
+  refreshPage(){
+    if(S.page==='updates')renderUpdates(true);
+  }
+};
+document.getElementById('ub-action').onclick=()=>Updater.runBanner();
+
+function checkUpdates(manual){
+  if(manual)toast('Checking for updates…','info');
+  return Updater.check(!!manual);
+}
+
+function renderUpdates(keepScroll){
+  const y=keepScroll?document.getElementById('content').scrollTop:0;
+  const st=Updater.state, info=_nativeInfo||{version:appMeta('app-version'),build:Number(appMeta('app-native-code'))||0,webVersion:appMeta('app-version'),webBuild:Number(appMeta('app-build'))||0};
+  const stored=Updater.stored();
+  const pending=Updater.pendingWeb();
+  const apk=st.apk;
+  const configured=Updater.configured();
+  const last=st.lastCheck?new Date(st.lastCheck).toLocaleString():'Never';
+  let status,statusColor;
+  if(!configured){status='Update channel is not configured yet.';statusColor='var(--red)';}
+  else if(st.checking){status='Checking GitHub for updates…';statusColor='var(--accent)';}
+  else if(st.error){status='Update check failed: '+st.error;statusColor='var(--red)';}
+  else if(apk){status='A new APK is required (native version '+apk.versionCode+').';statusColor='var(--accent)';}
+  else if(pending){status='A web update is downloaded and ready for the next launch.';statusColor='var(--green)';}
+  else if(st.checked){status='You are on the latest version.';statusColor='var(--green)';}
+  else{status='Updates are checked automatically when the app starts.';statusColor='var(--text2)';}
+
+  document.getElementById('content').innerHTML=`
+    <div class="grid g4 sg">
+      <div class="stat-card">
+        <div class="stat-icon si-gold">📱</div>
+        <div class="stat-val" style="font-size:17px">v${esc(info.version)}</div>
+        <div class="stat-lbl">Installed App Version</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon si-blue">🏗️</div>
+        <div class="stat-val" style="font-size:17px">${info.build}</div>
+        <div class="stat-lbl">Native Build</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon si-green">⚡</div>
+        <div class="stat-val" style="font-size:17px">${info.webBuild}</div>
+        <div class="stat-lbl">Web Build (code)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon ${pending?'si-gold':'si-blue'}">⬆️</div>
+        <div class="stat-val" style="font-size:17px">${pending?'Ready':'—'}</div>
+        <div class="stat-lbl">Downloaded Update</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-hd">
+        <div class="card-title" style="font-size:16px">🔄 Update Status</div>
+        <div style="display:flex;gap:7px;align-items:center">
+          <span class="vpill">Last check: ${esc(last)}</span>
+          <button class="btn btn-primary btn-sm" onclick="checkUpdates(true)" ${st.checking?'disabled':''}>${st.checking?'Checking…':'Check Now'}</button>
+        </div>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:10px;background:var(--bg3);border-radius:var(--rs);padding:13px 14px">
+        <span style="font-size:18px;line-height:1.2">${apk?'📦':pending?'✨':st.error?'⚠️':'✅'}</span>
+        <div>
+          <div style="font-size:13px;font-weight:600;color:${statusColor};line-height:1.5">${esc(status)}</div>
+          ${apk&&apk.notes?`<div style="font-size:12px;color:var(--text2);margin-top:4px;white-space:pre-wrap">${esc(apk.notes)}</div>`:''}
+          ${pending&&pending.notes?`<div style="font-size:12px;color:var(--text2);margin-top:4px;white-space:pre-wrap">${esc(pending.notes)}</div>`:''}
+        </div>
+      </div>
+      ${!configured?`
+        <div style="margin-top:14px;font-size:12px;color:var(--text2);line-height:1.8">
+          Open <code style="background:var(--bg3);padding:1px 5px;border-radius:4px">index.html</code> and set
+          <code style="background:var(--bg3);padding:1px 5px;border-radius:4px">UPDATE_CFG.repo</code> to your GitHub
+          repository (for example <code style="background:var(--bg3);padding:1px 5px;border-radius:4px">owner/repo</code>).
+          Then rebuild the APK.
+        </div>`:''}
+    </div>
+
+    ${pending?`
+    <div class="card" style="margin-bottom:16px;border-left:3px solid var(--green)">
+      <div class="card-hd"><div class="card-title" style="font-size:16px">✨ Web Update Ready</div><span class="vpill">Build ${pending.build}</span></div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:12px">This update only changes app code. It will apply automatically the next time the app opens — no reinstall needed.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="Updater.applyWeb()">↻ Restart & Apply Now</button>
+        <button class="btn btn-ghost" onclick="Updater.confirmDiscard()">Discard Update</button>
+      </div>
+    </div>`:''}
+
+    ${apk?`
+    <div class="card" style="margin-bottom:16px;border-left:3px solid var(--accent)">
+      <div class="card-hd"><div class="card-title" style="font-size:16px">📦 APK Update Required</div><span class="vpill">${esc(apk.version||'')} · build ${apk.versionCode}</span></div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:12px">This release changed native parts of the app, so Android needs to install the new APK. Your data stays on the device.</p>
+      ${st.downloading?`<div class="upd-prog" style="display:block;margin-bottom:12px"><div id="upd-prog-page" style="width:${st.progress}%"></div></div>`:''}
+      <button class="btn btn-primary" onclick="Updater.downloadApk()" ${st.downloading?'disabled':''}>${st.downloading?'Downloading… '+st.progress+'%':'⬇️ Download & Install APK'}</button>
+      ${st.apkPath?`<button class="btn btn-ghost" style="margin-left:6px" onclick="Updater.installApk()">Open Installer</button>`:''}
+      ${apk.size?`<span style="font-size:11px;color:var(--text3);margin-left:8px">${fmtSize(apk.size)}</span>`:''}
+    </div>`:''}
+
+    <div class="card">
+      <div class="card-hd"><div class="card-title" style="font-size:16px">ℹ️ How Updates Work</div></div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.9">
+        <div>⚡ <strong style="color:var(--text)">Code updates</strong> download in the background and start on the next launch. The APK is not replaced.</div>
+        <div>📦 <strong style="color:var(--text)">Native updates</strong> are only released when Android-side code changes. The app downloads the APK and opens Android's installer.</div>
+        <div>🔒 The Android signature must stay the same between APK releases, otherwise Android will refuse to update the app.</div>
+        <div>🌐 Update channel: <code style="background:var(--bg3);padding:1px 5px;border-radius:4px">${esc(configured?Updater.repo:'not configured')}</code></div>
+        ${stored?`<div style="margin-top:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="vpill">Downloaded build ${stored.build}</span><button class="btn btn-danger btn-sm" onclick="Updater.confirmDiscard()">Clear downloaded update</button></div>`:''}
+      </div>
+    </div>
+  `;
+  if(keepScroll)document.getElementById('content').scrollTop=y;
+}
+Updater.confirmDiscard=async function(){
+  const ok=await confirm2('Discard update','Remove the downloaded web update and keep the current version?');
+  if(!ok)return;
+  rmStoredBundle();
+  this.state.web=null;
+  toast('Downloaded update removed','info');
+  this.refreshPage();
+};
+
+/* =====================================================
+   ANDROID HARDWARE BACK BUTTON
+   Modal → sidebar → customer ledger → page history → exit
+   ===================================================== */
+let _lastBackAt=0;
+async function handleHardwareBack(){
+  const conf=document.getElementById('conf-ov');
+  if(conf&&conf.classList.contains('open')){document.getElementById('c-cancel').click();return;}
+
+  const modals=document.querySelectorAll('.overlay.open');
+  if(modals.length){closeModal(modals[modals.length-1].id);return;}
+
+  const ub=document.getElementById('upd-bar');
+  if(ub&&ub.classList.contains('show')){Updater.hideBanner();return;}
+
+  if(document.querySelector('.sidebar.open')){toggleMobileMenu();return;}
+
+  const drops=[...document.querySelectorAll('.cust-drop')];
+  if(drops.some(d=>getComputedStyle(d).display!=='none')){closeAllCustDrop();return;}
+
+  if(S.custView==='ledger'){backToCusts();return;}
+
+  if(navHistory.length){
+    const prev=navHistory.pop();
+    await navigate(prev,{fromBack:true});
+    return;
+  }
+  if(S.page!=='dashboard'){
+    await navigate('dashboard',{fromBack:true});
+    return;
+  }
+  if(Date.now()-_lastBackAt<2000){
+    const App=nativePlugin('App');
+    if(App&&App.exitApp)App.exitApp();
+  }else{
+    _lastBackAt=Date.now();
+    toast('Press back again to exit','info');
+  }
+}
+let _backRetries=0;
+function initHardwareBack(){
+  const App=nativePlugin('App');
+  if((!App||!App.addListener)&&isNativeApp()&&_backRetries++<10){
+    setTimeout(initHardwareBack,500);
+    return;
+  }
+  if(!App||!App.addListener)return;
+  try{App.addListener('backButton',()=>{handleHardwareBack();});}catch(e){}
+  try{
+    App.addListener('appStateChange',st=>{
+      if(st&&st.isActive&&Date.now()-Updater.state.lastCheck>UPDATE_CFG.checkEveryMs)Updater.check(false);
+    });
+  }catch(e){}
+}
+
+/* =====================================================
+   INIT
+   ===================================================== */
+async function init(){
+  initTheme();
+  const cl=document.documentElement.dataset.lang||'en';
+  document.documentElement.dir=cl==='ps'?'rtl':'ltr';
+  tU();
+  setSyncUI(isOnline?'online':'offline');
+  initFirebase();
+  initHardwareBack();
+  await navigate('dashboard');
+  // Only mark an OTA bundle healthy after the first page rendered.
+  Updater.confirmBoot();
+  getNativeInfo().then(()=>{if(S.page==='updates')renderUpdates(true);});
+  // Check the release on every launch (the public release endpoint has
+  // no API rate limit), and every few hours while the app stays open.
+  if(UPDATE_CFG.autoCheck){
+    setTimeout(()=>{Updater.check(false);},2500);
+  }
+}
+init();
+</script>
+</body>
+</html>

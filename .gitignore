@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Generated web bundle
+www/
+dist/
+
+# Signing material — never commit these
+*.keystore
+*.jks
+keystore.properties
+android/release.keystore
+
+# Local Android config
+android/local.properties
+android/.gradle/
+android/build/
+android/app/build/
+android/capacitor-cordova-android-plugins/
+
+# OS
+.DS_Store
+Thumbs.db
