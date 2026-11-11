@@ -267,8 +267,8 @@ tbody tr:hover{background:var(--bg3)}
 @keyframes ti{from{transform:translateX(70%);opacity:0}to{transform:translateX(0);opacity:1}}
 
 /* UPDATE BANNER */
-#upd-bar{position:fixed;left:50%;bottom:18px;transform:translateX(-50%) translateY(160%);z-index:4000;width:min(560px,94vw);background:var(--card);border:1px solid var(--border2);border-left:3px solid var(--accent);border-radius:var(--r);padding:12px 15px;box-shadow:0 8px 40px rgba(0,0,0,.6);display:flex;align-items:center;gap:12px;transition:transform .28s ease}
-#upd-bar.show{transform:translateX(-50%) translateY(0)}
+#upd-bar{position:fixed;left:50%;bottom:18px;transform:translateX(-50%) translateY(calc(100% + 110px));z-index:4000;width:min(560px,94vw);background:var(--card);border:1px solid var(--border2);border-left:3px solid var(--accent);border-radius:var(--r);padding:12px 15px;box-shadow:0 8px 40px rgba(0,0,0,.6);display:flex;align-items:center;gap:12px;visibility:hidden;opacity:0;pointer-events:none;transition:transform .28s ease,opacity .2s ease,visibility .28s}
+#upd-bar.show{transform:translateX(-50%) translateY(0);visibility:visible;opacity:1;pointer-events:auto}
 #upd-bar .ub-ico{font-size:20px;flex-shrink:0}
 #upd-bar .ub-txt{flex:1;min-width:0}
 #upd-bar .ub-title{font-size:13px;font-weight:600;line-height:1.35}
