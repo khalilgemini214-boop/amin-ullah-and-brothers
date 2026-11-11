@@ -2580,9 +2580,12 @@ const Updater={
           if(webUrl){
             const html=await httpGetText(withCacheBust(webUrl));
             if(!html||html.indexOf('<html')<0)throw new Error('Invalid web bundle');
-            if(manifest.web&&manifest.web.sha256){
+            if(manifest.web&&(manifest.web.sha256||manifest.web.sha256Raw)){
               const actual=await sha256Hex(html);
-              if(actual&&actual.toLowerCase()!==String(manifest.web.sha256).toLowerCase()){
+              // sha256 = Android's line-normalized text, sha256Raw = raw bytes
+              const expected=[manifest.web.sha256,manifest.web.sha256Raw]
+                .filter(Boolean).map(x=>String(x).toLowerCase());
+              if(actual&&expected.length&&!expected.includes(actual.toLowerCase())){
                 throw new Error('Web update checksum mismatch');
               }
             }

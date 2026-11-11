@@ -44,6 +44,13 @@ notes = notes.slice(0, 2000);
 
 const sha256 = (buf) => createHash('sha256').update(buf).digest('hex');
 
+// CapacitorHttp on Android reads responseType:"text" with
+// BufferedReader.readLine(), joins lines with "\n" and drops the final
+// newline. Hash that normalized form as the primary web checksum so the
+// APK can verify it; keep the raw hash for browsers and other clients.
+const htmlText = html.toString('utf8');
+const androidText = htmlText.replace(/\r\n/g, '\n').replace(/\n$/, '');
+
 const manifest = {
   version,
   webBuild,
@@ -54,7 +61,8 @@ const manifest = {
   web: {
     asset: 'app.html',
     size: statSync(htmlPath).size,
-    sha256: sha256(html)
+    sha256: sha256(Buffer.from(androidText, 'utf8')),
+    sha256Raw: sha256(html)
   },
   apk: {
     asset: 'app.apk',
