@@ -1174,6 +1174,14 @@ function toggleMobileMenu(force){
   sb.classList.toggle('open',open);
   if(bd)bd.classList.toggle('show',open);
 }
+// Tap/click anywhere outside the open menu to close it.
+document.addEventListener('click',e=>{
+  const sb=document.querySelector('.sidebar');
+  if(!sb||!sb.classList.contains('open'))return;
+  if(sb.contains(e.target))return;
+  if(e.target.closest('.mobile-nav-btn'))return;
+  toggleMobileMenu(false);
+});
 async function navigate(page,opts={}){
   if(!opts.fromBack){
     // The dashboard is the app root: tapping it clears the back stack.
