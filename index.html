@@ -258,6 +258,7 @@ tbody tr:hover{background:var(--bg3)}
 .tx-card .tinfo{flex:1;min-width:0}
 .tx-card .tdate{display:block;font-size:10.5px;font-weight:600;color:var(--text2);letter-spacing:.02em;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tx-card .tdesc{font-size:13px;font-weight:600;line-height:1.4;word-break:break-word}
+.tx-card .tcustomer{font-size:15px;font-weight:700;line-height:1.35;color:var(--text);margin:1px 0 2px;word-break:break-word}
 .tx-card .tnotes{font-size:11px;color:var(--text3);margin-top:3px;word-break:break-word}
 .tx-card .amts{flex:none;text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:3px;max-width:45%}
 .tx-card .amt{font-size:13.5px;font-weight:700;white-space:nowrap}
@@ -1383,16 +1384,18 @@ function buildTxnCards(txns){
   if(!txns||!txns.length)return`<div class="empty"><div class="ei">💱</div><p>No transactions yet</p></div>`;
   return txns.map(t=>{
     const cu=S.customers.find(c=>c.id===t.customerId);
-    const meta=[cu?`👤 ${esc(cu.name)}`:'',t.notes?esc(t.notes):''].filter(Boolean).join(' · ');
+    const bc=cf(t.boughtCurrency).color;
+    const ac=cf(t.againstCurrency).color;
     return`<div class="tx-card clickable" onclick="openEditTxn('${t.id}')">
       <div class="tinfo">
         <span class="tdate">${fmtStamp(t.date||t.createdAt)}</span>
+        ${cu?`<div class="tcustomer">${esc(cu.name)}</div>`:''}
         <div class="tdesc">${txnDesc(t)}</div>
-        ${meta?`<div class="tnotes">${meta}</div>`:''}
+        ${t.notes?`<div class="tnotes">${esc(t.notes)}</div>`:''}
       </div>
       <div class="amts">
-        <div class="amt">${flag(t.boughtCurrency)} ${fmt(t.boughtAmt)} <span class="cur">${t.boughtCurrency}</span></div>
-        <div class="sub-tag">${flag(t.againstCurrency)} ${fmt(t.againstAmt)} ${t.againstCurrency}</div>
+        <div class="amt" style="color:${bc}">${flag(t.boughtCurrency)} ${fmt(t.boughtAmt)} <span class="cur">${t.boughtCurrency}</span></div>
+        <div class="sub-tag" style="color:${ac}">${flag(t.againstCurrency)} ${fmt(t.againstAmt)} ${t.againstCurrency}</div>
       </div>
     </div>`;
   }).join('');
@@ -1547,6 +1550,7 @@ async function deleteEditTxn(){
    PAYMENTS
    ===================================================== */
 let npDir='received';
+let payLimit=30;
 function setNpDir(dir){
   npDir=dir;
   document.getElementById('np-dir-recv').className='dir-btn'+(dir==='received'?' active-recv':'');
@@ -1555,6 +1559,7 @@ function setNpDir(dir){
 
 function renderPays(){
   npDir='received';
+  payLimit=30;
   document.getElementById('content').innerHTML=`
     <div class="entry-panel">
       <div class="ep-title">${t('new_pay')}</div>
@@ -1589,9 +1594,44 @@ function renderPays(){
       </div>
     </div>
     <div class="card-title" style="margin-bottom:10px;font-size:13px">${t('all_pays')}</div>
-    <div id="pay-list">${buildPayCards(S.payments)}</div>
+    <div class="sw mb3"><span class="sw-icon">🔍</span>
+      <input class="fc" id="pay-q" placeholder="Search amount, customer, method, notes…" oninput="filterPayments()"/>
+    </div>
+    <div id="pay-list"></div>
   `;
+  renderPayList();
 }
+
+function paySearchText(p){
+  const cu=S.customers.find(c=>c.id===p.customerId);
+  const pty=S.customers.find(c=>c.id===p.partyId);
+  return [
+    p.amount, fmt(p.amount), p.currency, p.method, p.notes, p.date, p.direction,
+    cu&&cu.name, cu&&cu.phone, pty&&pty.name, pty&&pty.phone
+  ].filter(Boolean).join(' ').toLowerCase();
+}
+function renderPayList(){
+  const list=document.getElementById('pay-list');
+  if(!list)return;
+  const q=(document.getElementById('pay-q')?.value||'').trim().toLowerCase();
+  const sorted=[...S.payments].sort((a,b)=>{
+    const ca=Number(a.createdAt)||0,cb=Number(b.createdAt)||0;
+    if(cb!==ca)return cb-ca;
+    return String(b.date||'').localeCompare(String(a.date||''));
+  });
+  const all=q?sorted.filter(p=>paySearchText(p).includes(q)):sorted;
+  const shown=all.slice(0,payLimit);
+  if(!all.length){
+    list.innerHTML=`<div class="empty"><div class="ei">${S.payments.length?'🔍':'💳'}</div><p>${S.payments.length?'No matching payments':'No payments yet'}</p></div>`;
+    return;
+  }
+  const more=all.length>shown.length
+    ?`<button class="btn btn-ghost" style="width:100%;justify-content:center;margin-top:6px" onclick="showMorePayments()">See more (${all.length-shown.length})</button>`
+    :'';
+  list.innerHTML=buildPayCards(shown)+more;
+}
+function filterPayments(){payLimit=30;renderPayList();}
+function showMorePayments(){payLimit+=30;renderPayList();}
 
 function buildPayCards(pays){
   if(!pays||!pays.length)return`<div class="empty"><div class="ei">💳</div><p>No payments yet</p></div>`;
@@ -1634,8 +1674,8 @@ async function savePayment(){
   ['np-amt','np-notes'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   const pe=document.getElementById('np-party');if(pe)pe.value='';
   const peInput=document.getElementById('np-party-input');if(peInput)peInput.value='';
-  const list=document.getElementById('pay-list');
-  if(list)list.innerHTML=buildPayCards(S.payments);
+  payLimit=30;
+  renderPayList();
 }
 
 let epDir='received';
