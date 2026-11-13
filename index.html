@@ -833,6 +833,7 @@ document.addEventListener('click',e=>{
    ===================================================== */
 let S={customers:[],transactions:[],payments:[],logs:[],snapshots:[],page:'dashboard',editId:null,ledgerCustId:null,ledgerCurrency:null,custView:'list',pnlRange:{type:'all',from:'',to:''},closeMonth:null};
 let dashCustLimit=10;
+let txnLimit=30;
 function loadAll(){
   // localStorage reads are synchronous; avoid an async hop so tab
   // switches render immediately with no spinner/flash.
@@ -1305,6 +1306,7 @@ function setNtDir(dir){
 
 function renderTxns(){
   ntDir='buy';
+  txnLimit=30;
   document.getElementById('content').innerHTML=`
     <div class="entry-panel">
       <div class="ep-title">${t('new_txn')}</div>
@@ -1355,8 +1357,9 @@ function renderTxns(){
         <input type="date" class="fc" id="txn-fd2" onchange="filterTxns()"/>
       </div>
     </div>
-    <div id="txn-list">${buildTxnCards(S.transactions)}</div>
+    <div id="txn-list"></div>
   `;
+  renderTxnList();
 }
 
 function buildTxnCards(txns){
@@ -1412,18 +1415,44 @@ function ntPreview(){
     </div>`;
   }
 }
-function filterTxns(){
-  let txns=[...S.transactions];
-  const q=(document.getElementById('txn-q')?.value||'').toLowerCase();
+function txnFiltered(){
+  let txns=[...S.transactions].sort((a,b)=>{
+    const ca=Number(a.createdAt)||0,cb=Number(b.createdAt)||0;
+    if(cb!==ca)return cb-ca;
+    return String(b.date||'').localeCompare(String(a.date||''));
+  });
+  const q=(document.getElementById('txn-q')?.value||'').trim().toLowerCase();
   const cur=document.getElementById('txn-fc')?.value||'';
   const d1=document.getElementById('txn-fd1')?.value||'';
   const d2=document.getElementById('txn-fd2')?.value||'';
-  if(q)txns=txns.filter(t=>(t.boughtCurrency+t.againstCurrency+(t.notes||'')).toLowerCase().includes(q));
+  if(q)txns=txns.filter(t=>{
+    const cu=S.customers.find(c=>c.id===t.customerId);
+    return [
+      t.boughtCurrency,t.againstCurrency,t.notes,t.boughtAmt,t.againstAmt,t.rate,t.date,
+      cu&&cu.name,cu&&cu.phone
+    ].filter(Boolean).join(' ').toLowerCase().includes(q);
+  });
   if(cur)txns=txns.filter(t=>t.boughtCurrency===cur||t.againstCurrency===cur);
   if(d1)txns=txns.filter(t=>(t.date||'')>=d1);
   if(d2)txns=txns.filter(t=>(t.date||'')<=d2);
-  document.getElementById('txn-list').innerHTML=buildTxnCards(txns);
+  return txns;
 }
+function renderTxnList(){
+  const list=document.getElementById('txn-list');
+  if(!list)return;
+  const all=txnFiltered();
+  const shown=all.slice(0,txnLimit);
+  if(!all.length){
+    list.innerHTML=`<div class="empty"><div class="ei">${S.transactions.length?'🔍':'💱'}</div><p>${S.transactions.length?'No matching transactions':'No transactions yet'}</p></div>`;
+    return;
+  }
+  const more=all.length>shown.length
+    ?`<button class="btn btn-ghost" style="width:100%;justify-content:center;margin-top:6px" onclick="showMoreTxns()">See more (${all.length-shown.length})</button>`
+    :'';
+  list.innerHTML=buildTxnCards(shown)+more;
+}
+function filterTxns(){txnLimit=30;renderTxnList();}
+function showMoreTxns(){txnLimit+=30;renderTxnList();}
 async function saveTxn(){
   let boughtCurrency=document.getElementById('nt-bought')?.value;
   let againstCurrency=document.getElementById('nt-against')?.value;
@@ -1445,7 +1474,8 @@ async function saveTxn(){
   await loadAll();
   ['nt-rate','nt-ba','nt-aa','nt-notes'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
   const p=document.getElementById('nt-preview');if(p)p.innerHTML='';
-  document.getElementById('txn-list').innerHTML=buildTxnCards(S.transactions);
+  txnLimit=30;
+  renderTxnList();
 }
 function setEtDir(dir){
   const isB=dir==='buy';
@@ -1513,7 +1543,8 @@ async function saveEditTxn(){
 async function deleteTxn(id){
   const ok=await confirm2('Delete Transaction','Permanently delete this transaction?');if(!ok)return;
   await DB.delete('transactions',id);toast('Deleted','success');
-  await loadAll();document.getElementById('txn-list').innerHTML=buildTxnCards(S.transactions);
+  await loadAll();
+  renderTxnList();
 }
 async function deleteEditTxn(){
   const id=S.editId;if(!id)return;
@@ -2156,28 +2187,9 @@ function renderInv(){
           ${inv[c.code]<-0.001?`<div style="font-size:11px;color:var(--red);margin-top:5px">⚠️ Negative</div>`:''}
         </div>`).join('')}
     </div>
-    <div class="grid g2">
-      <div class="card">
-        <div class="card-hd"><div class="card-title">${t('bal_chart')}</div></div>
-        <div class="chart-wrap"><canvas id="inv-chart"></canvas></div>
-      </div>
-      <div class="card">
-        <div class="card-hd"><div class="card-title">${t('flow_breakdown')}</div></div>
-        <table>
-          <thead><tr><th>Currency</th><th>Total In</th><th>Total Out</th><th>Net</th></tr></thead>
-          <tbody>${CURR.map(c=>{
-            const ins=S.transactions.reduce((s,t)=>t.boughtCurrency===c.code?s+(parseFloat(t.boughtAmt)||0):s,0);
-            const outs=S.transactions.reduce((s,t)=>t.againstCurrency===c.code?s+(parseFloat(t.againstAmt)||0):s,0);
-            const net=ins-outs;
-            return`<tr>
-              <td><span style="display:inline-flex;align-items:center;gap:6px">${flag(c.code)} <strong>${c.code}</strong></span></td>
-              <td class="fc-green">+${fmt(ins)}</td>
-              <td class="fc-red">−${fmt(outs)}</td>
-              <td class="fw7" style="color:${net<-0.001?'var(--red)':net>0.001?'var(--green)':'var(--text2)'}">${fmt(net)}</td>
-            </tr>`;
-          }).join('')}</tbody>
-        </table>
-      </div>
+    <div class="card">
+      <div class="card-hd"><div class="card-title">${t('bal_chart')}</div></div>
+      <div class="chart-wrap"><canvas id="inv-chart"></canvas></div>
     </div>
   `;
   setTimeout(()=>{
