@@ -832,6 +832,7 @@ document.addEventListener('click',e=>{
    STATE
    ===================================================== */
 let S={customers:[],transactions:[],payments:[],logs:[],snapshots:[],page:'dashboard',editId:null,ledgerCustId:null,ledgerCurrency:null,custView:'list',pnlRange:{type:'all',from:'',to:''},closeMonth:null};
+let dashCustLimit=10;
 function loadAll(){
   // localStorage reads are synchronous; avoid an async hop so tab
   // switches render immediately with no spinner/flash.
@@ -1197,6 +1198,7 @@ async function navigate(page,opts={}){
     else if(page!==S.page)navPush(S.page);
   }
   S.page=page;
+  if(page==='dashboard')dashCustLimit=10;
   setActivePage(page);
   document.getElementById('page-title').textContent=getTitles()[page]||page;
   loadAll();
@@ -1215,17 +1217,9 @@ function renderDash(){
   const lastPnl=last?(snapshotPnls()[last.month]||0):0;
   const liveBal=balancesInPkr(ymd(new Date()),currentRates());
 
-  // Calculate totals per currency across all customers
-  const totals={};
-  CURR.forEach(c=>totals[c.code]={debit:0,credit:0});
-  S.customers.forEach(c=>{
-    const net=calcCustNet(c.id);
-    CURR.forEach(c=>{
-      const val=net[c.code]||0;
-      if(val<0) totals[c.code].debit+=Math.abs(val);
-      else totals[c.code].credit+=val;
-    });
-  });
+  // Dashboard balances only show accounts that actually have a balance.
+  const dashCusts=S.customers.filter(c=>nonZeroNets(calcCustNet(c.id)).length>0);
+  const shownCusts=dashCusts.slice(0,dashCustLimit);
 
   document.getElementById('content').innerHTML=`
     <div class="grid g4 sg">
@@ -1253,23 +1247,6 @@ function renderDash(){
     </div>
 
     <div class="card sg">
-      <div class="card-hd"><div class="card-title">Customer Totals by Currency</div></div>
-      ${CURR.map(c=>{
-        const t=totals[c.code];
-        const bal=t.debit-t.credit;
-        return`<div class="inv-row cust-total-row">
-          <div class="inv-left">
-            <div class="inv-flag">${flag(c.code)}</div>
-            <div><div class="inv-name">${c.code}</div><div class="inv-desc">${c.name}</div></div>
-          </div>
-          <div class="inv-amt" style="color:var(--red)">${fmt(t.debit)} Dr</div>
-          <div class="inv-amt" style="color:var(--blue)">${fmt(t.credit)} Cr</div>
-          <div class="inv-amt" style="color:${bal>=0?'var(--green)':'var(--red)'}">${fmt(bal)}</div>
-        </div>`;
-      }).join('')}
-    </div>
-
-    <div class="card sg">
       <div class="card-hd"><div class="card-title">Volume by Currency</div></div>
       <div class="chart-wrap"><canvas id="dash-chart"></canvas></div>
     </div>
@@ -1279,16 +1256,17 @@ function renderDash(){
         <div class="card-title">${t('cust_bals')}</div>
         <button class="btn btn-ghost btn-sm" onclick="navigate('customers')">View All →</button>
       </div>
-      ${S.customers.length===0?`<div class="empty"><div class="ei">👥</div><p>No customers yet</p></div>`:`
+      ${dashCusts.length===0?`<div class="empty"><div class="ei">👥</div><p>${S.customers.length?'All accounts are settled':'No customers yet'}</p></div>`:`
       <table class="cust-table">
         <thead><tr><th style="padding-left:14px">Customer</th><th>Phone</th><th>Balance</th><th></th></tr></thead>
-        <tbody>${S.customers.map(c=>`<tr onclick="openLedger('${c.id}')">
+        <tbody>${shownCusts.map(c=>`<tr onclick="openLedger('${c.id}')">
           <td style="padding-left:14px;font-weight:600">${esc(c.name)}</td>
           <td class="tc">${esc(c.phone)||'—'}</td>
           <td><div class="bal-pills">${balPills(c.id)}</div></td>
           <td><button class="btn btn-ghost btn-sm ledger-btn" onclick="event.stopPropagation();openLedger('${c.id}')">📄 Ledger</button></td>
         </tr>`).join('')}</tbody>
-      </table>`}
+      </table>
+      ${dashCusts.length>shownCusts.length?`<button class="btn btn-ghost" style="width:100%;justify-content:center;margin-top:10px" onclick="showMoreDashCusts()">Show more (${dashCusts.length-shownCusts.length})</button>`:''}`}
     </div>
 
     <div class="card">
@@ -1309,6 +1287,7 @@ function renderDash(){
     });
   },80);
 }
+function showMoreDashCusts(){dashCustLimit+=10;renderDash();}
 
 /* =====================================================
    TRANSACTIONS
@@ -1753,8 +1732,16 @@ function renderCusts(){
 }
 function buildCustCards(custs){
   if(!custs.length)return`<div class="empty" style="grid-column:1/-1"><div class="ei">👥</div><p>${S.customers.length?'No matching accounts':'No customers yet'}</p></div>`;
-  return custs.map(c=>{
-    const nz=nonZeroNets(calcCustNet(c.id));
+  // Accounts with any balance (positive or negative) come first;
+  // settled/zero-balance accounts come after. Stable within each group.
+  const bals=new Map(custs.map(c=>[c.id,nonZeroNets(calcCustNet(c.id))]));
+  const ordered=[...custs].sort((a,b)=>{
+    const ga=bals.get(a.id).length?0:1;
+    const gb=bals.get(b.id).length?0:1;
+    return ga-gb;
+  });
+  return ordered.map(c=>{
+    const nz=bals.get(c.id);
     const balances=nz.length
       ?nz.map(({code,val})=>{
         const pos=val>0;
